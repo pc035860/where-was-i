@@ -35,7 +35,8 @@ function renderAgentCard(session: AgentSession, innerWidth: number): string[] {
   const timeLen = stringWidth(timeStr);
   const paddedAgent = padRight(colorFn(agentName), AGENT_NAME_WIDTH);
   const prefixWidth = 2 + AGENT_NAME_WIDTH + 2;
-  const maxProjectWidth = innerWidth - prefixWidth - timeLen - 1 - 2;
+  const PROJECT_PAD_WIDTH = 2;
+  const maxProjectWidth = innerWidth - prefixWidth - timeLen - 1 - PROJECT_PAD_WIDTH;
 
   let project = session.projectName;
   if (stringWidth(project) > maxProjectWidth) {
@@ -99,13 +100,10 @@ export function renderStatus(
     lines: renderAgentCard(session, innerWidth),
   }));
 
-  const staleCards = options.showStale
-    ? buckets.stale.map((session) => ({ session, lines: renderAgentCard(session, innerWidth) }))
-    : [];
-
+  const hasStale = options.showStale && buckets.stale.length > 0;
   const overhead = 3;
   const overflowLineHeight = 2;
-  const staleDividerHeight = options.showStale && staleCards.length > 0 ? 2 : 0;
+  const staleDividerHeight = hasStale ? 2 : 0;
   const availableRows = termRows - overhead - staleDividerHeight;
 
   let mainCards = cards;
@@ -131,32 +129,32 @@ export function renderStatus(
   }
 
   const lines: string[] = [];
-  lines.push(topBorder);
 
-  for (const card of mainCards) {
-    lines.push(emptyLine);
-    for (const cardLine of card.lines) {
-      lines.push(wrapLine(cardLine));
+  const pushCards = (cardList: { lines: string[] }[]) => {
+    for (const card of cardList) {
+      lines.push(emptyLine);
+      for (const cardLine of card.lines) lines.push(wrapLine(cardLine));
     }
-  }
+  };
+
+  lines.push(topBorder);
+  pushCards(mainCards);
 
   if (overflowCount > 0) {
     lines.push(emptyLine);
     lines.push(wrapLine(chalk.dim(`+${overflowCount} more sessions (a to expand)`)));
   }
 
-  if (options.showStale && staleCards.length > 0) {
+  if (hasStale) {
     lines.push(emptyLine);
     const dividerText = '── stale ';
     const divider = dividerText + '─'.repeat(innerWidth - dividerText.length);
     lines.push(wrapLine(chalk.dim(divider)));
 
-    for (const card of staleCards) {
-      lines.push(emptyLine);
-      for (const cardLine of card.lines) {
-        lines.push(wrapLine(cardLine));
-      }
-    }
+    const staleCards = buckets.stale.map((session) => ({
+      lines: renderAgentCard(session, innerWidth),
+    }));
+    pushCards(staleCards);
   }
 
   lines.push(emptyLine);

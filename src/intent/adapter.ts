@@ -11,28 +11,21 @@ export function createAdapter(debug = false): LlmAdapter | null {
     process.env['GEMINI_API_KEY'] || process.env['GOOGLE_API_KEY'];
   const openaiKey = process.env['OPENAI_API_KEY'];
 
-  const log = (msg: string) => {
-    if (debug) process.stderr.write(msg);
+  const adapters = {
+    gemini: geminiKey ? () => createGeminiAdapter(geminiKey) : null,
+    openai: openaiKey ? () => createOpenAIAdapter(openaiKey) : null,
   };
 
-  if (provider === 'openai' && openaiKey) {
-    log('[intent] adapter: openai\n');
-    return createOpenAIAdapter(openaiKey);
-  }
+  const order = provider === 'openai'
+    ? (['openai', 'gemini'] as const)
+    : (['gemini', 'openai'] as const);
 
-  if (provider === 'gemini' && geminiKey) {
-    log('[intent] adapter: gemini\n');
-    return createGeminiAdapter(geminiKey);
-  }
-
-  if (geminiKey) {
-    log('[intent] adapter: gemini\n');
-    return createGeminiAdapter(geminiKey);
-  }
-
-  if (openaiKey) {
-    log('[intent] adapter: openai\n');
-    return createOpenAIAdapter(openaiKey);
+  for (const name of order) {
+    const factory = adapters[name];
+    if (factory) {
+      if (debug) process.stderr.write(`[intent] adapter: ${name}\n`);
+      return factory();
+    }
   }
 
   return null;

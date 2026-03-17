@@ -23,7 +23,7 @@ export async function statusCommand(options: CommandOptions): Promise<void> {
         if (intent) session.intent = intent;
       })
     );
-    engine.destroy();
+    await engine.destroy();
   }
 
   const output = renderStatus(sessions, { showStale: options.showStale, showAll: true });
@@ -35,12 +35,13 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
   const POLL_INTERVAL_MS = 2000;
 
   const engine = options.intent ? new IntentEngine({ debug: options.debug }) : null;
+  if (engine) await engine.init();
   let lastMtimes = new Map<string, number>();
   let showStale = options.showStale;
   let showAll = false;
 
-  const cleanup = () => {
-    engine?.destroy();
+  const cleanup = async () => {
+    await engine?.destroy();
     if (process.stdin.isTTY) {
       process.stdin.setRawMode(false);
     }
@@ -48,19 +49,27 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
     process.exit(0);
   };
 
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
+  process.on('SIGINT', () => void cleanup());
+  process.on('SIGTERM', () => void cleanup());
+
+  const KEY_Q = 0x71;
+  const KEY_CTRL_C = 0x03;
+  const KEY_S = 0x73;
+  const KEY_A = 0x61;
 
   if (process.stdin.isTTY) {
     process.stdin.setRawMode(true);
     process.stdin.resume();
     process.stdin.on('data', (key: Buffer) => {
-      if (key[0] === 0x71 || key[0] === 0x03) cleanup();
-      if (key[0] === 0x73) {
+      if (key[0] === KEY_Q || key[0] === KEY_CTRL_C) {
+        void cleanup();
+        return;
+      }
+      if (key[0] === KEY_S) {
         showStale = !showStale;
         void render();
       }
-      if (key[0] === 0x61) {
+      if (key[0] === KEY_A) {
         showAll = !showAll;
         void render();
       }

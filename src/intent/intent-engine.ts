@@ -10,6 +10,7 @@ const RATE_LIMIT_MAX = 2;
 const RETRY_COUNT = 1;
 const RETRY_DELAY_MS = 500;
 const CACHE_PATH = '/tmp/wwi-intent-cache.json';
+const CACHE_FLUSH_MS = 5000;
 
 interface CacheEntry {
   intent: string;
@@ -27,15 +28,11 @@ function hashContext(ctx: ConversationContext): string {
 
 async function loadDiskCache(): Promise<Map<string, CacheEntry>> {
   try {
-    const file = Bun.file(CACHE_PATH);
-    if (await file.exists()) {
-      const data = await file.json();
-      return new Map(Object.entries(data));
-    }
+    const data = await Bun.file(CACHE_PATH).json();
+    return new Map(Object.entries(data));
   } catch {
-    // corrupt or unreadable
+    return new Map();
   }
-  return new Map();
 }
 
 async function saveDiskCache(cache: Map<string, CacheEntry>): Promise<void> {
@@ -54,6 +51,8 @@ export class IntentEngine {
   private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private pendingCallbacks = new Map<string, () => void>();
   private cacheLoaded = false;
+  private cacheDirty = false;
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options?: { adapter?: LlmAdapter | null; debug?: boolean }) {
     this.debug = options?.debug ?? false;
@@ -64,14 +63,26 @@ export class IntentEngine {
     return this.adapter !== null;
   }
 
+  async init(): Promise<void> {
+    await this.ensureCache();
+  }
+
   private async ensureCache(): Promise<void> {
     if (this.cacheLoaded) return;
     this.cache = await loadDiskCache();
     this.cacheLoaded = true;
   }
 
-  private async persistCache(): Promise<void> {
-    await saveDiskCache(this.cache);
+  private scheduleCacheFlush(): void {
+    this.cacheDirty = true;
+    if (this.flushTimer) return;
+    this.flushTimer = setTimeout(async () => {
+      this.flushTimer = null;
+      if (this.cacheDirty) {
+        this.cacheDirty = false;
+        try { await saveDiskCache(this.cache); } catch {}
+      }
+    }, CACHE_FLUSH_MS);
   }
 
   getIntent(sessionPath: string): string | undefined {
@@ -119,7 +130,7 @@ export class IntentEngine {
     if (result) {
       const cleaned = result.replace(/\n/g, ' ').trim();
       this.cache.set(session.sessionPath, { intent: cleaned, hash });
-      await this.persistCache();
+      this.scheduleCacheFlush();
       return cleaned;
     }
 
@@ -176,9 +187,17 @@ export class IntentEngine {
     return true;
   }
 
-  destroy(): void {
+  async destroy(): Promise<void> {
     for (const timer of this.debounceTimers.values()) {
       clearTimeout(timer);
+    }
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    if (this.cacheDirty) {
+      this.cacheDirty = false;
+      await saveDiskCache(this.cache);
     }
     this.debounceTimers.clear();
     this.pendingCallbacks.clear();
