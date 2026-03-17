@@ -45,6 +45,8 @@ src/
 - **Session file formats are unstable** — agent-tail (~/code/agent-tail) is the reference for Claude/Codex/Gemini JSONL/JSON parsing patterns
 - **Gemini sessions are full JSON** (not JSONL) — must read entire file, never truncate with readTail
 - **JSONL sessions** (Claude, Codex) — use `readTail()` with `Bun.file().slice()` for efficiency
+- **All sessions display independently** — no per-group merging; each session gets a 7-char `sessionId` shown in TUI
+- **Session ID length** governed by `SESSION_ID_LENGTH` in `types.ts` — scanner and renderer both reference this single constant
 
 ## Gotchas
 
@@ -55,6 +57,8 @@ src/
 - `IntentEngine` constructor takes options object: `new IntentEngine({ adapter?, debug? })`
 - `IntentEngine.destroy()` is async — must be awaited before `process.exit()` to flush disk cache
 - Intent cache persists to `/tmp/wwi-intent-cache.json` with debounced writes (5s coalesce)
+- Codex `session_meta` first line can be 15KB+ (contains full system prompt) — `Bun.file().slice()` buffer must be ≥32KB to parse it
+- Codex UUIDs are v7 (timestamp prefix) — session ID must be extracted from the **last** UUID segment to avoid collisions between nearby sessions
 
 ## Reference Project
 

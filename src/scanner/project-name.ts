@@ -29,7 +29,7 @@ export async function extractCwdFromCodexSession(
 ): Promise<string | null> {
   try {
     const file = Bun.file(filePath);
-    const headBlob = file.slice(0, 4096);
+    const headBlob = file.slice(0, 32 * 1024);
     const headText = await headBlob.text();
     const firstLine = headText.split('\n')[0];
     if (!firstLine) return null;

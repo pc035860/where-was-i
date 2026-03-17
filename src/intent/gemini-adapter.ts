@@ -7,7 +7,7 @@ export function createGeminiAdapter(apiKey: string): LlmAdapter {
   return {
     async generateIntent(prompt: string): Promise<string | undefined> {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
+        model: 'gemini-3.1-flash-lite-preview',
         contents: prompt,
         config: {
           thinkingConfig: { thinkingBudget: 0 },

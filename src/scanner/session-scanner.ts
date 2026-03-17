@@ -14,7 +14,6 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl$/i;
 
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const CODEX_TIMESTAMP_LENGTH = 20;
 
 function extractSessionId(agentType: AgentType, filePath: string): string {
   const filename = basename(filePath);
@@ -23,7 +22,8 @@ function extractSessionId(agentType: AgentType, filePath: string): string {
       return filename.replace('.jsonl', '').slice(0, SESSION_ID_LENGTH);
     case 'codex': {
       const stem = filename.replace('rollout-', '').replace('.jsonl', '');
-      return stem.slice(CODEX_TIMESTAMP_LENGTH, CODEX_TIMESTAMP_LENGTH + SESSION_ID_LENGTH);
+      const lastDash = stem.lastIndexOf('-');
+      return lastDash >= 0 ? stem.slice(lastDash + 1, lastDash + 1 + SESSION_ID_LENGTH) : stem.slice(0, SESSION_ID_LENGTH);
     }
     case 'gemini': {
       const stem = filename.replace('.json', '');
