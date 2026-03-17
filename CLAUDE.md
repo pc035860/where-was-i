@@ -18,15 +18,15 @@ bun run typecheck                      # TypeScript check (skipLibCheck due to @
 
 - **Runtime**: Bun (not Node)
 - **Language**: TypeScript (strict, ESNext, bundler moduleResolution)
-- **Dependencies**: commander, chalk, @google/genai
-- **Intent Model**: gemini-3-flash-preview via Google GenAI SDK
+- **Dependencies**: commander, chalk, @google/genai, openai
+- **Intent Model**: Multi-adapter — Gemini (`gemini-2.5-flash-lite`) or OpenAI (`gpt-4.1-mini`), auto-detected by env var
 
 ## Architecture
 
 ```
 src/
 ├── scanner/      # Session discovery across Claude Code / Codex / Gemini CLI
-├── intent/       # Gemini API intent synthesis + context extraction
+├── intent/       # LLM adapter pattern (Gemini/OpenAI) + intent synthesis + context extraction
 ├── tui/          # Renderer (box-drawing) + watch loop (ANSI clear+redraw)
 └── utils/        # Time formatting
 ```
@@ -44,7 +44,8 @@ src/
 - `@google/genai` has a gaxios type conflict with Bun — `skipLibCheck: true` in tsconfig
 - Claude session scanner must check `~/.claude/projects` exists before globbing (not all machines have it)
 - `Bun.stripANSI` is capitalized as `Bun.stripANSI()` (not `stripAnsi`)
-- Intent engine needs `GEMINI_API_KEY` or `GOOGLE_API_KEY` env var; falls back to last user message without it
+- Intent engine auto-detects adapter: `GEMINI_API_KEY`/`GOOGLE_API_KEY` → Gemini, `OPENAI_API_KEY` → OpenAI (priority: Gemini first); falls back to last user message without any key
+- `IntentEngine` constructor accepts optional `LlmAdapter` for DI/testing; omit for auto-detection
 
 ## Reference Project
 

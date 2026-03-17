@@ -1,5 +1,6 @@
-import { GoogleGenAI } from '@google/genai';
 import type { AgentSession, ConversationContext } from '../scanner/types.ts';
+import type { LlmAdapter } from './adapter.ts';
+import { createAdapter } from './adapter.ts';
 import { extractContext } from './context-extractor.ts';
 import { buildIntentPrompt } from './prompt-template.ts';
 
@@ -24,21 +25,18 @@ function hashContext(ctx: ConversationContext): string {
 }
 
 export class IntentEngine {
-  private ai: GoogleGenAI | null = null;
+  private adapter: LlmAdapter | null = null;
   private cache = new Map<string, CacheEntry>();
   private rateLimits = new Map<string, number[]>();
   private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private pendingCallbacks = new Map<string, () => void>();
 
-  constructor() {
-    const apiKey = process.env['GEMINI_API_KEY'] || process.env['GOOGLE_API_KEY'];
-    if (apiKey) {
-      this.ai = new GoogleGenAI({ apiKey });
-    }
+  constructor(adapter?: LlmAdapter | null) {
+    this.adapter = adapter !== undefined ? adapter : createAdapter();
   }
 
   get isAvailable(): boolean {
-    return this.ai !== null;
+    return this.adapter !== null;
   }
 
   getIntent(sessionPath: string): string | undefined {
@@ -76,7 +74,7 @@ export class IntentEngine {
     const cached = this.cache.get(session.sessionPath);
     if (cached && cached.hash === hash) return cached.intent;
 
-    if (!this.ai) {
+    if (!this.adapter) {
       return ctx.userMessages.at(-1) ?? undefined;
     }
 
@@ -87,17 +85,10 @@ export class IntentEngine {
     try {
       const prompt = buildIntentPrompt(ctx);
       const apiStart = Date.now();
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-flash-lite',
-        contents: prompt,
-        config: {
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      });
+      const intent = await this.adapter.generateIntent(prompt);
       const apiMs = Date.now() - apiStart;
       process.stderr.write(`[intent] ${ctx.projectName}: ${apiMs}ms\n`);
 
-      const intent = response.text?.trim();
       if (intent) {
         this.cache.set(session.sessionPath, {
           intent,
