@@ -82,7 +82,7 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
         }
 
         const oldMtime = lastMtimes.get(key);
-        if (engine && (!oldMtime || oldMtime !== session.mtime.getTime())) {
+        if (engine && session.activityLevel !== 'stale' && (!oldMtime || oldMtime !== session.mtime.getTime())) {
           engine.requestIntent(session, () => void render());
         }
       }
