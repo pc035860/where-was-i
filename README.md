@@ -4,6 +4,8 @@
 
 A CLI tool that scans AI coding agent sessions and displays their status with LLM-powered intent synthesis. When you're juggling multiple AI agents across different projects, WWI gives you a quick overview of what each one is doing.
 
+![WWI screenshot](assets/wwi-screenshot.jpg)
+
 ## What It Does
 
 WWI scans session files from three AI coding agents:

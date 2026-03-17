@@ -4,6 +4,8 @@
 
 一個 CLI 工具，用來掃描 AI 程式碼代理（coding agent）的工作階段，並透過 LLM 自動產生意圖摘要。當你同時使用多個 AI 代理在不同專案之間切換時，WWI 能快速告訴你每個代理正在做什麼。
 
+![WWI 截圖](assets/wwi-screenshot.jpg)
+
 ## 功能簡介
 
 WWI 會掃描三種 AI 程式碼代理的工作階段檔案：
