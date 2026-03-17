@@ -1,0 +1,12 @@
+{
+  "messages": [
+    { "type": "user", "content": "create a new React component" },
+    { "type": "gemini", "content": "I'll create the component.", "toolCalls": [{ "name": "writeFile" }] },
+    { "type": "user", "content": "add unit tests for it" },
+    {
+      "type": "gemini",
+      "content": "Writing tests now.",
+      "toolCalls": [{ "name": "readFile" }, { "name": "writeFile" }]
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 import chalk from 'chalk';
-import type { AgentSession, AgentType, ActivityLevel } from '../scanner/types.ts';
+import type { ActivityLevel, AgentSession, AgentType } from '../scanner/types.ts';
 import { AGENT_DISPLAY_NAMES, SESSION_ID_LENGTH } from '../scanner/types.ts';
-import { formatRelativeTime } from '../utils/time.ts';
 import { stringWidth, truncateToWidth, wrapToLines } from '../utils/string-width.ts';
+import { formatRelativeTime } from '../utils/time.ts';
 
 const STATUS_ICONS: Record<ActivityLevel, string> = {
   active: chalk.green('●'),
@@ -16,9 +16,7 @@ const AGENT_COLORS: Record<AgentType, (s: string) => string> = {
   gemini: chalk.magentaBright,
 };
 
-const AGENT_NAME_WIDTH = Math.max(
-  ...Object.values(AGENT_DISPLAY_NAMES).map((n) => n.length)
-);
+const AGENT_NAME_WIDTH = Math.max(...Object.values(AGENT_DISPLAY_NAMES).map((n) => n.length));
 
 function padRight(str: string, len: number): string {
   const diff = len - stringWidth(str);
@@ -41,26 +39,18 @@ function renderAgentCard(session: AgentSession, innerWidth: number): string[] {
 
   let project = session.projectName;
   if (stringWidth(project) > maxProjectWidth) {
-    project = maxProjectWidth > 2
-      ? truncateToWidth(project, maxProjectWidth)
-      : project.slice(0, 3);
+    project = maxProjectWidth > 2 ? truncateToWidth(project, maxProjectWidth) : project.slice(0, 3);
   }
 
   const styledProject = chalk.white.bgHex('#2a2a2a')(` ${project} `);
   const styledSessionId = chalk.dim(` ${session.sessionId}`);
   const label = `${icon} ${paddedAgent}  ${styledProject}${styledSessionId}`;
   const gap = innerWidth - stringWidth(label) - timeLen;
-  const line1 = gap > 0
-    ? `${label}${' '.repeat(gap)}${timeStr}`
-    : `${label} ${timeStr}`;
+  const line1 = gap > 0 ? `${label}${' '.repeat(gap)}${timeStr}` : `${label} ${timeStr}`;
 
-  const intentText = session.intent
-    ? `→ ${session.intent}`
-    : '→ …';
+  const intentText = session.intent ? `→ ${session.intent}` : '→ …';
   const colorFn2 = session.intent ? chalk.white : chalk.dim;
-  const intentLines = wrapToLines(intentText, innerWidth, 2).map(
-    (line) => padRight(colorFn2(line), innerWidth)
-  );
+  const intentLines = wrapToLines(intentText, innerWidth, 2).map((line) => padRight(colorFn2(line), innerWidth));
 
   return [line1, ...intentLines];
 }
@@ -70,10 +60,7 @@ export interface RenderOptions {
   showAll?: boolean;
 }
 
-export function renderStatus(
-  sessions: AgentSession[],
-  options: RenderOptions
-): string {
+export function renderStatus(sessions: AgentSession[], options: RenderOptions): string {
   const termWidth = process.stdout.columns || 60;
   const termRows = process.stdout.rows || 24;
   const boxWidth = termWidth - 4;
@@ -83,9 +70,9 @@ export function renderStatus(
   for (const s of sessions) buckets[s.activityLevel].push(s);
 
   const b = chalk.hex('#888888');
-  const topBorder = `  ${b('┌─')} ${chalk.bold('Where Was I')} ${b('─'.repeat(boxWidth - 16) + '┐')}`;
-  const bottomBorder = `  ${b('└' + '─'.repeat(boxWidth - 2) + '┘')}`;
-  const emptyLine = `  ${b('│')}${' '.repeat(boxWidth - 2)}${b('│')}`;
+  const topBorder = `  ${b('┌─')} ${chalk.bold('Where Was I')} ${b(`${'─'.repeat(Math.max(0, boxWidth - 16))}┐`)}`;
+  const bottomBorder = `  ${b(`└${'─'.repeat(Math.max(0, boxWidth - 2))}┘`)}`;
+  const emptyLine = `  ${b('│')}${' '.repeat(Math.max(0, boxWidth - 2))}${b('│')}`;
 
   const wrapLine = (content: string) => {
     return `  ${b('│')}  ${padRight(content, innerWidth)}  ${b('│')}`;
@@ -150,7 +137,7 @@ export function renderStatus(
   if (hasStale) {
     lines.push(emptyLine);
     const dividerText = '── stale ';
-    const divider = dividerText + '─'.repeat(innerWidth - dividerText.length);
+    const divider = dividerText + '─'.repeat(Math.max(0, innerWidth - dividerText.length));
     lines.push(wrapLine(chalk.dim(divider)));
 
     const staleCards = buckets.stale.map((session) => ({

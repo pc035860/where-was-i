@@ -1,8 +1,6 @@
 import { basename, dirname, join } from 'node:path';
 
-export async function extractCwdFromClaudeSession(
-  filePath: string
-): Promise<string | null> {
+export async function extractCwdFromClaudeSession(filePath: string): Promise<string | null> {
   try {
     const file = Bun.file(filePath);
     const headBlob = file.slice(0, 10 * 1024);
@@ -14,9 +12,7 @@ export async function extractCwdFromClaudeSession(
         const data = JSON.parse(line);
         if (data.cwd) return data.cwd;
         if (data.message?.cwd) return data.message.cwd;
-      } catch {
-        continue;
-      }
+      } catch {}
     }
     return null;
   } catch {
@@ -24,9 +20,7 @@ export async function extractCwdFromClaudeSession(
   }
 }
 
-export async function extractCwdFromCodexSession(
-  filePath: string
-): Promise<string | null> {
+export async function extractCwdFromCodexSession(filePath: string): Promise<string | null> {
   try {
     const file = Bun.file(filePath);
     const headBlob = file.slice(0, 32 * 1024);
@@ -52,7 +46,7 @@ export async function extractCwdFromCodexSession(
 }
 
 export async function extractProjectFromGeminiSession(
-  sessionPath: string
+  sessionPath: string,
 ): Promise<{ projectDir: string; displayName: string } | null> {
   const chatsDir = dirname(sessionPath);
   const projectDir = dirname(chatsDir);

@@ -1,19 +1,21 @@
 import type { ConversationContext } from '../scanner/types.ts';
 
+function escapeXml(str: string): string {
+  return str.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function wrapMessages(messages: string[]): string {
   if (messages.length === 0) return '<msg>(none)</msg>';
-  return messages.map((m) => `<msg>${m}</msg>`).join('\n');
+  return messages.map((m) => `<msg>${escapeXml(m)}</msg>`).join('\n');
 }
 
 export function buildIntentPrompt(context: ConversationContext): string {
-  const toolSection = context.recentTools.length > 0
-    ? context.recentTools.join(', ')
-    : '(none)';
+  const toolSection = context.recentTools.length > 0 ? escapeXml(context.recentTools.join(', ')) : '(none)';
 
   return `<system>You synthesize coding session activity into a brief status line.</system>
 
 <context>
-<project>${context.projectName}</project>
+<project>${escapeXml(context.projectName)}</project>
 
 <user_messages>
 ${wrapMessages(context.userMessages)}

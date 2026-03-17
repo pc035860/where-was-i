@@ -2,16 +2,15 @@ import { stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, join } from 'node:path';
 import { Glob } from 'bun';
-import type { AgentSession, AgentType } from './types.ts';
-import { SESSION_ID_LENGTH, computeActivityLevel } from './types.ts';
 import {
   extractCwdFromClaudeSession,
   extractCwdFromCodexSession,
   extractProjectFromGeminiSession,
 } from './project-name.ts';
+import type { AgentSession, AgentType } from './types.ts';
+import { computeActivityLevel, SESSION_ID_LENGTH } from './types.ts';
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl$/i;
 
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
@@ -23,12 +22,16 @@ function extractSessionId(agentType: AgentType, filePath: string): string {
     case 'codex': {
       const stem = filename.replace('rollout-', '').replace('.jsonl', '');
       const lastDash = stem.lastIndexOf('-');
-      return lastDash >= 0 ? stem.slice(lastDash + 1, lastDash + 1 + SESSION_ID_LENGTH) : stem.slice(0, SESSION_ID_LENGTH);
+      return lastDash >= 0
+        ? stem.slice(lastDash + 1, lastDash + 1 + SESSION_ID_LENGTH)
+        : stem.slice(0, SESSION_ID_LENGTH);
     }
     case 'gemini': {
       const stem = filename.replace('.json', '');
       const lastDash = stem.lastIndexOf('-');
-      return lastDash >= 0 ? stem.slice(lastDash + 1, lastDash + 1 + SESSION_ID_LENGTH) : stem.slice(0, SESSION_ID_LENGTH);
+      return lastDash >= 0
+        ? stem.slice(lastDash + 1, lastDash + 1 + SESSION_ID_LENGTH)
+        : stem.slice(0, SESSION_ID_LENGTH);
     }
   }
 }
@@ -64,11 +67,7 @@ async function scanClaudeSessions(): Promise<RawSession[]> {
       const stats = await stat(file);
       if (now - stats.mtime.getTime() > MAX_AGE_MS) continue;
 
-      const encodedPath = file
-        .replace(baseDir + '/', '')
-        .split('/')
-        .slice(0, -1)
-        .join('/');
+      const encodedPath = file.replace(`${baseDir}/`, '').split('/').slice(0, -1).join('/');
 
       const cwd = await extractCwdFromClaudeSession(file);
       const projectName = cwd ? basename(cwd) : encodedPath;
@@ -82,9 +81,7 @@ async function scanClaudeSessions(): Promise<RawSession[]> {
         projectName,
         projectPath,
       });
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 
   return sessions;
@@ -123,9 +120,7 @@ async function scanCodexSessions(): Promise<RawSession[]> {
         projectName,
         projectPath: cwd,
       });
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 
   return sessions;
@@ -161,9 +156,7 @@ async function scanGeminiSessions(): Promise<RawSession[]> {
         projectName,
         projectPath: info.displayName,
       });
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 
   return sessions;

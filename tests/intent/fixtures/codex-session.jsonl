@@ -1,0 +1,5 @@
+{"type":"session_meta","payload":{"type":"session_meta","cwd":"/Users/test/codex-project"}}
+{"payload":{"type":"message","role":"user","content":"refactor the API handler"}}
+{"payload":{"type":"message","role":"assistant","content":"I'll refactor the handler."}}
+{"payload":{"type":"function_call","name":"shell"}}
+{"payload":{"type":"message","role":"user","content":"now add error handling"}}

@@ -8,9 +8,8 @@ export interface LlmAdapter {
 }
 
 export function createAdapter(provider: ProviderName = 'gemini', model?: string, debug = false): LlmAdapter {
-  const geminiKey =
-    process.env['GEMINI_API_KEY'] || process.env['GOOGLE_API_KEY'];
-  const openaiKey = process.env['OPENAI_API_KEY'];
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
 
   if (provider === 'gemini') {
     if (!geminiKey) {

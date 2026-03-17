@@ -9,7 +9,7 @@ const SYSTEM_TAG_RE = /^<(?:local-command-caveat|command-name|command-message|co
 
 function truncate(str: string, max: number): string {
   if (str.length <= max) return str;
-  return str.slice(0, max) + '…';
+  return `${str.slice(0, max)}…`;
 }
 
 function extractTextContent(content: unknown): string {
@@ -33,7 +33,7 @@ function finalizeContext(
   userMessages: string[],
   assistantMessages: string[],
   recentTools: string[],
-  projectName: string
+  projectName: string,
 ): ConversationContext {
   return {
     userMessages: userMessages.slice(-MAX_USER_MESSAGES),
@@ -45,7 +45,7 @@ function finalizeContext(
 
 async function buildJsonlContext(
   session: AgentSession,
-  parseLine: (data: Record<string, unknown>) => ParsedChunk
+  parseLine: (data: Record<string, unknown>) => ParsedChunk,
 ): Promise<ConversationContext> {
   const userMessages: string[] = [];
   const assistantMessages: string[] = [];
@@ -60,9 +60,7 @@ async function buildJsonlContext(
       if (chunk.userMsg) userMessages.push(chunk.userMsg);
       if (chunk.assistantMsg) assistantMessages.push(chunk.assistantMsg);
       if (chunk.tools) recentTools.push(...chunk.tools);
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 
   return finalizeContext(userMessages, assistantMessages, recentTools, session.projectName);
@@ -119,9 +117,7 @@ function parseCodexLine(data: Record<string, unknown>): ParsedChunk {
   return chunk;
 }
 
-async function extractGeminiContext(
-  session: AgentSession
-): Promise<ConversationContext> {
+async function extractGeminiContext(session: AgentSession): Promise<ConversationContext> {
   const userMessages: string[] = [];
   const assistantMessages: string[] = [];
   const recentTools: string[] = [];
@@ -153,9 +149,7 @@ async function extractGeminiContext(
   return finalizeContext(userMessages, assistantMessages, recentTools, session.projectName);
 }
 
-export async function extractContext(
-  session: AgentSession
-): Promise<ConversationContext> {
+export async function extractContext(session: AgentSession): Promise<ConversationContext> {
   switch (session.agentType) {
     case 'claude':
       return buildJsonlContext(session, parseClaudeLine);

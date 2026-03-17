@@ -20,8 +20,8 @@ export interface ConversationContext {
   projectName: string;
 }
 
-const ACTIVE_THRESHOLD_MS = 20 * 60 * 1000;
-const RECENT_THRESHOLD_MS = 2 * 60 * 60 * 1000;
+export const ACTIVE_THRESHOLD_MS = 20 * 60 * 1000;
+export const RECENT_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 
 export function computeActivityLevel(mtime: Date): ActivityLevel {
   const age = Date.now() - mtime.getTime();

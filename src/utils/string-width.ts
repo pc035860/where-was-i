@@ -34,7 +34,7 @@ export function truncateToWidth(str: string, maxWidth: number): string {
     width += w;
     result += char;
   }
-  return result + '…';
+  return `${result}…`;
 }
 
 export function wrapToLines(text: string, maxWidth: number, indent = 0): string[] {
@@ -45,6 +45,12 @@ export function wrapToLines(text: string, maxWidth: number, indent = 0): string[
   while (remaining.length > 0) {
     const prefix = first ? '' : ' '.repeat(indent);
     const available = first ? maxWidth : maxWidth - indent;
+
+    if (available <= 0) {
+      lines.push(prefix + remaining);
+      break;
+    }
+
     let width = 0;
     let cut = 0;
 
@@ -53,6 +59,13 @@ export function wrapToLines(text: string, maxWidth: number, indent = 0): string[
       if (width + w > available) break;
       width += w;
       cut += char.length;
+    }
+
+    if (cut === 0) {
+      lines.push(prefix + remaining.slice(0, 1));
+      remaining = remaining.slice(1);
+      first = false;
+      continue;
     }
 
     if (cut >= remaining.length) {

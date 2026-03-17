@@ -19,11 +19,7 @@ interface CacheEntry {
 }
 
 function hashContext(ctx: ConversationContext): string {
-  const raw = [
-    ...ctx.userMessages,
-    ...ctx.assistantMessages,
-    ...ctx.recentTools,
-  ].join('|');
+  const raw = [...ctx.userMessages, ...ctx.assistantMessages, ...ctx.recentTools].join('|');
   return Bun.hash(raw).toString(36);
 }
 
@@ -57,7 +53,8 @@ export class IntentEngine {
 
   constructor(options?: { adapter?: LlmAdapter | null; provider?: ProviderName; model?: string; debug?: boolean }) {
     this.debug = options?.debug ?? false;
-    this.adapter = options?.adapter !== undefined ? options.adapter : createAdapter(options?.provider, options?.model, this.debug);
+    this.adapter =
+      options?.adapter !== undefined ? options.adapter : createAdapter(options?.provider, options?.model, this.debug);
   }
 
   get isAvailable(): boolean {
@@ -81,7 +78,9 @@ export class IntentEngine {
       this.flushTimer = null;
       if (this.cacheDirty) {
         this.cacheDirty = false;
-        try { await saveDiskCache(this.cache); } catch {}
+        try {
+          await saveDiskCache(this.cache);
+        } catch {}
       }
     }, CACHE_FLUSH_MS);
   }
@@ -171,12 +170,17 @@ export class IntentEngine {
   }
 
   pruneStaleEntries(activePaths: Set<string>): void {
+    let pruned = false;
     for (const key of this.cache.keys()) {
-      if (!activePaths.has(key)) this.cache.delete(key);
+      if (!activePaths.has(key)) {
+        this.cache.delete(key);
+        pruned = true;
+      }
     }
     for (const key of this.rateLimits.keys()) {
       if (!activePaths.has(key)) this.rateLimits.delete(key);
     }
+    if (pruned) this.scheduleCacheFlush();
   }
 
   private async doRequest(session: AgentSession): Promise<void> {

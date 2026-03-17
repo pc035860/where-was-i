@@ -1,0 +1,4 @@
+{"type":"user","message":{"content":"help me fix the login bug","cwd":"/Users/test/project"}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"I'll look into the login issue."},{"type":"tool_use","name":"Read"}]}}
+{"type":"user","message":{"content":"also check the auth middleware"}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Found the problem in auth.ts."},{"type":"tool_use","name":"Edit"}]}}

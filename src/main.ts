@@ -3,10 +3,7 @@ import type { CommandOptions } from './tui/watch-loop.ts';
 
 const program = new Command();
 
-program
-  .name('wwi')
-  .description('Where Was I? — Track your AI coding agents')
-  .version('0.1.0');
+program.name('wwi').description('Where Was I? — Track your AI coding agents').version('0.1.0');
 
 program
   .command('status')

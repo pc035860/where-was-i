@@ -1,7 +1,7 @@
-import { scanAllSessions } from '../scanner/session-scanner.ts';
-import { IntentEngine } from '../intent/intent-engine.ts';
-import { renderStatus } from './renderer.ts';
 import type { ProviderName } from '../intent/adapter.ts';
+import { IntentEngine } from '../intent/intent-engine.ts';
+import { scanAllSessions } from '../scanner/session-scanner.ts';
+import { renderStatus } from './renderer.ts';
 
 export interface CommandOptions {
   showStale: boolean;
@@ -24,7 +24,7 @@ export async function statusCommand(options: CommandOptions): Promise<void> {
           new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 15000)),
         ]);
         if (intent) session.intent = intent;
-      })
+      }),
     );
     await engine.destroy();
   }
@@ -37,7 +37,9 @@ export async function statusCommand(options: CommandOptions): Promise<void> {
 export async function watchCommand(options: CommandOptions): Promise<void> {
   const POLL_INTERVAL_MS = 2000;
 
-  const engine = options.intent ? new IntentEngine({ provider: options.provider, model: options.model, debug: options.debug }) : null;
+  const engine = options.intent
+    ? new IntentEngine({ provider: options.provider, model: options.model, debug: options.debug })
+    : null;
   if (engine) await engine.init();
   let lastMtimes = new Map<string, number>();
   let showStale = options.showStale;
@@ -112,7 +114,7 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
 
       if (output !== lastOutput) {
         process.stdout.write('\x1b[2J\x1b[H');
-        process.stdout.write(output + '\n');
+        process.stdout.write(`${output}\n`);
         lastOutput = output;
       }
     } catch {
