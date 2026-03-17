@@ -30,7 +30,7 @@ export function computeActivityLevel(mtime: Date): ActivityLevel {
 }
 
 export const AGENT_DISPLAY_NAMES: Record<AgentType, string> = {
-  claude: 'Claude Code',
-  codex: 'Codex CLI',
-  gemini: 'Gemini CLI',
+  claude: 'claude',
+  codex: 'codex',
+  gemini: 'gemini',
 };
