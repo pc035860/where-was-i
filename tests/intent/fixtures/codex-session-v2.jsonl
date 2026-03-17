@@ -1,0 +1,10 @@
+{"type":"session_meta","payload":{"type":"session_meta","cwd":"/Users/test/codex-project"}}
+{"type":"response_item","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"You are a coding assistant."}]}}
+{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"review the auth module"}]}}
+{"type":"event_msg","payload":{"type":"user_message","message":"review the auth module"}}
+{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"I'll review the auth module now."}]}}
+{"type":"response_item","payload":{"type":"function_call","name":"exec_command"}}
+{"type":"response_item","payload":{"type":"function_call_output","content":"src/auth.ts contents..."}}
+{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Found a missing null check in the token validation."}]}}
+{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"fix it and add tests"}]}}
+{"type":"response_item","payload":{"type":"function_call","name":"exec_command"}}

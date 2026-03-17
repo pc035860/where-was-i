@@ -16,7 +16,7 @@ function extractTextContent(content: unknown): string {
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
     return content
-      .filter((p: { type?: string }) => p.type === 'text')
+      .filter((p: { type?: string }) => p.type === 'text' || p.type === 'input_text' || p.type === 'output_text')
       .map((p: { text?: string }) => p.text || '')
       .join(' ');
   }

@@ -73,6 +73,7 @@ tests/
 - `IntentEngine.destroy()` is async — must be awaited before `process.exit()` to flush disk cache
 - Intent cache persists to `/tmp/wwi-intent-cache.json` with debounced writes (5s coalesce)
 - Codex `session_meta` first line can be 15KB+ (contains full system prompt) — `Bun.file().slice()` buffer must be ≥32KB to parse it
+- Codex content arrays use `input_text` (user) and `output_text` (assistant), not `text` — `extractTextContent()` must handle all three types
 - Codex UUIDs are v7 (timestamp prefix) — session ID must be extracted from the **last** UUID segment to avoid collisions between nearby sessions
 - Renderer uses `Math.max(0, ...)` guards on all `String.repeat()` calls — narrow terminals would otherwise throw `RangeError`
 - `wrapToLines()` has `available <= 0` guard — prevents infinite loop when called with zero/negative maxWidth

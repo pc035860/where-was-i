@@ -55,13 +55,13 @@ describe('extractContext — Claude', () => {
 });
 
 describe('extractContext — Codex', () => {
-  test('extracts user messages from Codex JSONL', async () => {
+  test('extracts user messages from Codex JSONL (string content)', async () => {
     const ctx = await extractContext(fixtureSession('codex', 'codex-session.jsonl'));
     expect(ctx.userMessages).toContain('refactor the API handler');
     expect(ctx.userMessages).toContain('now add error handling');
   });
 
-  test('extracts assistant messages from Codex JSONL', async () => {
+  test('extracts assistant messages from Codex JSONL (string content)', async () => {
     const ctx = await extractContext(fixtureSession('codex', 'codex-session.jsonl'));
     expect(ctx.assistantMessages.length).toBeGreaterThan(0);
   });
@@ -69,6 +69,29 @@ describe('extractContext — Codex', () => {
   test('extracts tools from Codex JSONL', async () => {
     const ctx = await extractContext(fixtureSession('codex', 'codex-session.jsonl'));
     expect(ctx.recentTools).toContain('shell');
+  });
+
+  test('extracts user messages from Codex v2 format (input_text)', async () => {
+    const ctx = await extractContext(fixtureSession('codex', 'codex-session-v2.jsonl'));
+    expect(ctx.userMessages).toContain('review the auth module');
+    expect(ctx.userMessages).toContain('fix it and add tests');
+  });
+
+  test('extracts assistant messages from Codex v2 format (output_text)', async () => {
+    const ctx = await extractContext(fixtureSession('codex', 'codex-session-v2.jsonl'));
+    expect(ctx.assistantMessages).toContain("I'll review the auth module now.");
+    expect(ctx.assistantMessages).toContain('Found a missing null check in the token validation.');
+  });
+
+  test('extracts tools from Codex v2 format', async () => {
+    const ctx = await extractContext(fixtureSession('codex', 'codex-session-v2.jsonl'));
+    expect(ctx.recentTools).toContain('exec_command');
+  });
+
+  test('skips developer role messages in Codex v2', async () => {
+    const ctx = await extractContext(fixtureSession('codex', 'codex-session-v2.jsonl'));
+    const hasDeveloper = ctx.userMessages.some((m) => m.includes('You are a coding assistant'));
+    expect(hasDeveloper).toBe(false);
   });
 });
 
