@@ -1,18 +1,21 @@
 import { scanAllSessions } from '../scanner/session-scanner.ts';
 import { IntentEngine } from '../intent/intent-engine.ts';
 import { renderStatus } from './renderer.ts';
+import type { ProviderName } from '../intent/adapter.ts';
 
 export interface CommandOptions {
   showStale: boolean;
   intent: boolean;
   debug: boolean;
+  provider: ProviderName;
+  model?: string;
 }
 
 export async function statusCommand(options: CommandOptions): Promise<void> {
   const sessions = await scanAllSessions();
 
   if (options.intent) {
-    const engine = new IntentEngine({ debug: options.debug });
+    const engine = new IntentEngine({ provider: options.provider, model: options.model, debug: options.debug });
     const visible = sessions.filter((s) => s.activityLevel !== 'stale');
     await Promise.allSettled(
       visible.map(async (session) => {
@@ -34,7 +37,7 @@ export async function statusCommand(options: CommandOptions): Promise<void> {
 export async function watchCommand(options: CommandOptions): Promise<void> {
   const POLL_INTERVAL_MS = 2000;
 
-  const engine = options.intent ? new IntentEngine({ debug: options.debug }) : null;
+  const engine = options.intent ? new IntentEngine({ provider: options.provider, model: options.model, debug: options.debug }) : null;
   if (engine) await engine.init();
   let lastMtimes = new Map<string, number>();
   let showStale = options.showStale;

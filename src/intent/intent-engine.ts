@@ -1,5 +1,5 @@
 import type { AgentSession, ConversationContext } from '../scanner/types.ts';
-import type { LlmAdapter } from './adapter.ts';
+import type { LlmAdapter, ProviderName } from './adapter.ts';
 import { createAdapter } from './adapter.ts';
 import { extractContext } from './context-extractor.ts';
 import { buildIntentPrompt } from './prompt-template.ts';
@@ -55,9 +55,9 @@ export class IntentEngine {
   private cacheDirty = false;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(options?: { adapter?: LlmAdapter | null; debug?: boolean }) {
+  constructor(options?: { adapter?: LlmAdapter | null; provider?: ProviderName; model?: string; debug?: boolean }) {
     this.debug = options?.debug ?? false;
-    this.adapter = options?.adapter !== undefined ? options.adapter : createAdapter(this.debug);
+    this.adapter = options?.adapter !== undefined ? options.adapter : createAdapter(options?.provider, options?.model, this.debug);
   }
 
   get isAvailable(): boolean {

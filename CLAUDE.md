@@ -7,7 +7,9 @@ macOS CLI tool that scans AI coding agent sessions and displays their status wit
 ## Commands
 
 ```bash
-bun run src/main.ts status             # One-shot snapshot
+bun run src/main.ts status             # One-shot snapshot (default: gemini provider)
+bun run src/main.ts status -p openai   # Use OpenAI provider
+bun run src/main.ts watch -m gemini-2.5-flash  # Override model name
 bun run src/main.ts status --show-stale # Include stale sessions (>2h)
 bun run src/main.ts status --no-intent # Skip intent synthesis
 bun run src/main.ts status --debug     # Show debug output (API timing, adapter selection)
@@ -26,7 +28,7 @@ bun run typecheck                      # TypeScript check (skipLibCheck due to @
 - **Runtime**: Bun (not Node)
 - **Language**: TypeScript (strict, ESNext, bundler moduleResolution)
 - **Dependencies**: commander, chalk, @google/genai, openai
-- **Intent Model**: Multi-adapter — Gemini (`gemini-2.5-flash-lite`) or OpenAI (`gpt-4.1-mini`), auto-detected by env var
+- **Intent Model**: Multi-adapter — Gemini (`gemini-3.1-flash-lite-preview`) or OpenAI (`gpt-4.1-mini`), selected via `--provider` CLI option (default: gemini)
 
 ## Architecture
 
@@ -53,8 +55,8 @@ src/
 - `@google/genai` has a gaxios type conflict with Bun — `skipLibCheck: true` in tsconfig
 - Claude session scanner must check `~/.claude/projects` exists before globbing (not all machines have it)
 - `Bun.stripANSI` is capitalized as `Bun.stripANSI()` (not `stripAnsi`)
-- Intent engine auto-detects adapter: `GEMINI_API_KEY`/`GOOGLE_API_KEY` → Gemini, `OPENAI_API_KEY` → OpenAI (priority: Gemini first); falls back to last user message without any key. Set `WWI_PROVIDER=openai` or `WWI_PROVIDER=gemini` to override auto-detection
-- `IntentEngine` constructor takes options object: `new IntentEngine({ adapter?, debug? })`
+- Provider selected via `-p, --provider <name>` CLI option (gemini/openai, default: gemini). Missing API key for the selected provider throws an error
+- `IntentEngine` constructor takes options object: `new IntentEngine({ adapter?, provider?, model?, debug? })`
 - `IntentEngine.destroy()` is async — must be awaited before `process.exit()` to flush disk cache
 - Intent cache persists to `/tmp/wwi-intent-cache.json` with debounced writes (5s coalesce)
 - Codex `session_meta` first line can be 15KB+ (contains full system prompt) — `Bun.file().slice()` buffer must be ≥32KB to parse it
