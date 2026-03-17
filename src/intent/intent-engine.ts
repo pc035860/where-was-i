@@ -5,14 +5,12 @@ import { extractContext } from './context-extractor.ts';
 import { buildIntentPrompt } from './prompt-template.ts';
 
 const DEBOUNCE_MS = 3000;
-const CACHE_TTL_MS = 30000;
 const RATE_LIMIT_WINDOW_MS = 60000;
 const RATE_LIMIT_MAX = 2;
 
 interface CacheEntry {
   intent: string;
   hash: string;
-  timestamp: number;
 }
 
 function hashContext(ctx: ConversationContext): string {
@@ -40,13 +38,7 @@ export class IntentEngine {
   }
 
   getIntent(sessionPath: string): string | undefined {
-    const entry = this.cache.get(sessionPath);
-    if (!entry) return undefined;
-    if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
-      this.cache.delete(sessionPath);
-      return undefined;
-    }
-    return entry.intent;
+    return this.cache.get(sessionPath)?.intent;
   }
 
   requestIntent(session: AgentSession, onUpdate?: () => void): void {
@@ -90,11 +82,7 @@ export class IntentEngine {
       process.stderr.write(`[intent] ${ctx.projectName}: ${apiMs}ms\n`);
 
       if (intent) {
-        this.cache.set(session.sessionPath, {
-          intent,
-          hash,
-          timestamp: Date.now(),
-        });
+        this.cache.set(session.sessionPath, { intent, hash });
         return intent;
       }
     } catch {
