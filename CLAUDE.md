@@ -10,9 +10,16 @@ macOS CLI tool that scans AI coding agent sessions and displays their status wit
 bun run src/main.ts status             # One-shot snapshot
 bun run src/main.ts status --show-stale # Include stale sessions (>2h)
 bun run src/main.ts status --no-intent # Skip intent synthesis
+bun run src/main.ts status --debug     # Show debug output (API timing, adapter selection)
 bun run src/main.ts watch              # Persistent TUI (main use case)
 bun run typecheck                      # TypeScript check (skipLibCheck due to @google/genai gaxios issue)
 ```
+
+### Watch Mode Keys
+
+- `q` / `Ctrl-C` — quit
+- `s` — toggle stale sessions
+- `a` — toggle expand all (adaptive height truncates by default)
 
 ## Tech Stack
 
@@ -28,7 +35,7 @@ src/
 ├── scanner/      # Session discovery across Claude Code / Codex / Gemini CLI
 ├── intent/       # LLM adapter pattern (Gemini/OpenAI) + intent synthesis + context extraction
 ├── tui/          # Renderer (box-drawing) + watch loop (ANSI clear+redraw)
-└── utils/        # Time formatting
+└── utils/        # Time formatting, CJK-aware string width
 ```
 
 ## Key Conventions
@@ -45,7 +52,9 @@ src/
 - Claude session scanner must check `~/.claude/projects` exists before globbing (not all machines have it)
 - `Bun.stripANSI` is capitalized as `Bun.stripANSI()` (not `stripAnsi`)
 - Intent engine auto-detects adapter: `GEMINI_API_KEY`/`GOOGLE_API_KEY` → Gemini, `OPENAI_API_KEY` → OpenAI (priority: Gemini first); falls back to last user message without any key. Set `WWI_PROVIDER=openai` or `WWI_PROVIDER=gemini` to override auto-detection
-- `IntentEngine` constructor accepts optional `LlmAdapter` for DI/testing; omit for auto-detection
+- `IntentEngine` constructor takes options object: `new IntentEngine({ adapter?, debug? })`
+- `IntentEngine.destroy()` is async — must be awaited before `process.exit()` to flush disk cache
+- Intent cache persists to `/tmp/wwi-intent-cache.json` with debounced writes (5s coalesce)
 
 ## Reference Project
 
