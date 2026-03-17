@@ -44,7 +44,7 @@ src/
 - `@google/genai` has a gaxios type conflict with Bun — `skipLibCheck: true` in tsconfig
 - Claude session scanner must check `~/.claude/projects` exists before globbing (not all machines have it)
 - `Bun.stripANSI` is capitalized as `Bun.stripANSI()` (not `stripAnsi`)
-- Intent engine auto-detects adapter: `GEMINI_API_KEY`/`GOOGLE_API_KEY` → Gemini, `OPENAI_API_KEY` → OpenAI (priority: Gemini first); falls back to last user message without any key
+- Intent engine auto-detects adapter: `GEMINI_API_KEY`/`GOOGLE_API_KEY` → Gemini, `OPENAI_API_KEY` → OpenAI (priority: Gemini first); falls back to last user message without any key. Set `WWI_PROVIDER=openai` or `WWI_PROVIDER=gemini` to override auto-detection
 - `IntentEngine` constructor accepts optional `LlmAdapter` for DI/testing; omit for auto-detection
 
 ## Reference Project

@@ -6,14 +6,26 @@ export interface LlmAdapter {
 }
 
 export function createAdapter(): LlmAdapter | null {
+  const provider = process.env['WWI_PROVIDER']?.toLowerCase();
   const geminiKey =
     process.env['GEMINI_API_KEY'] || process.env['GOOGLE_API_KEY'];
+  const openaiKey = process.env['OPENAI_API_KEY'];
+
+  if (provider === 'openai' && openaiKey) {
+    process.stderr.write('[intent] adapter: openai\n');
+    return createOpenAIAdapter(openaiKey);
+  }
+
+  if (provider === 'gemini' && geminiKey) {
+    process.stderr.write('[intent] adapter: gemini\n');
+    return createGeminiAdapter(geminiKey);
+  }
+
   if (geminiKey) {
     process.stderr.write('[intent] adapter: gemini\n');
     return createGeminiAdapter(geminiKey);
   }
 
-  const openaiKey = process.env['OPENAI_API_KEY'];
   if (openaiKey) {
     process.stderr.write('[intent] adapter: openai\n');
     return createOpenAIAdapter(openaiKey);
