@@ -17,7 +17,7 @@ export async function statusCommand(options: CommandOptions): Promise<void> {
       visible.map(async (session) => {
         const intent = await Promise.race([
           engine.requestIntentSync(session),
-          new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 5000)),
+          new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 15000)),
         ]);
         if (intent) session.intent = intent;
       })
@@ -27,6 +27,7 @@ export async function statusCommand(options: CommandOptions): Promise<void> {
 
   const output = renderStatus(sessions, { showStale: options.showStale });
   console.log(output);
+  process.exit(0);
 }
 
 export async function watchCommand(options: CommandOptions): Promise<void> {

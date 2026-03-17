@@ -86,11 +86,16 @@ export class IntentEngine {
 
     try {
       const prompt = buildIntentPrompt(ctx);
+      const apiStart = Date.now();
       const response = await this.ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash-lite',
         contents: prompt,
-        config: { maxOutputTokens: 60 },
+        config: {
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       });
+      const apiMs = Date.now() - apiStart;
+      process.stderr.write(`[intent] ${ctx.projectName}: ${apiMs}ms\n`);
 
       const intent = response.text?.trim();
       if (intent) {
