@@ -9,7 +9,7 @@ export function createOpenAIAdapter(apiKey: string): LlmAdapter {
       const response = await client.chat.completions.create({
         model: 'gpt-4.1-mini',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 100,
+        max_tokens: 200,
         temperature: 0.2,
       });
       return response.choices[0]?.message?.content?.trim() || undefined;

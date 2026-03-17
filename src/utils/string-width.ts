@@ -36,3 +36,34 @@ export function truncateToWidth(str: string, maxWidth: number): string {
   }
   return result + '…';
 }
+
+export function wrapToLines(text: string, maxWidth: number, indent = 0): string[] {
+  const lines: string[] = [];
+  let remaining = text;
+  let first = true;
+
+  while (remaining.length > 0) {
+    const prefix = first ? '' : ' '.repeat(indent);
+    const available = first ? maxWidth : maxWidth - indent;
+    let width = 0;
+    let cut = 0;
+
+    for (const char of remaining) {
+      const w = isFullWidth(char.codePointAt(0)!) ? 2 : 1;
+      if (width + w > available) break;
+      width += w;
+      cut += char.length;
+    }
+
+    if (cut >= remaining.length) {
+      lines.push(prefix + remaining);
+      break;
+    }
+
+    lines.push(prefix + remaining.slice(0, cut));
+    remaining = remaining.slice(cut);
+    first = false;
+  }
+
+  return lines;
+}

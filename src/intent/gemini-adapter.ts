@@ -11,7 +11,7 @@ export function createGeminiAdapter(apiKey: string): LlmAdapter {
         contents: prompt,
         config: {
           thinkingConfig: { thinkingBudget: 0 },
-          maxOutputTokens: 100,
+          maxOutputTokens: 200,
         },
       });
       return response.text?.trim() || undefined;

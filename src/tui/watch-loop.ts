@@ -26,7 +26,7 @@ export async function statusCommand(options: CommandOptions): Promise<void> {
     engine.destroy();
   }
 
-  const output = renderStatus(sessions, { showStale: options.showStale });
+  const output = renderStatus(sessions, { showStale: options.showStale, showAll: true });
   console.log(output);
   process.exit(0);
 }
@@ -37,6 +37,7 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
   const engine = options.intent ? new IntentEngine({ debug: options.debug }) : null;
   let lastMtimes = new Map<string, number>();
   let showStale = options.showStale;
+  let showAll = false;
 
   const cleanup = () => {
     engine?.destroy();
@@ -57,6 +58,10 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
       if (key[0] === 0x71 || key[0] === 0x03) cleanup();
       if (key[0] === 0x73) {
         showStale = !showStale;
+        void render();
+      }
+      if (key[0] === 0x61) {
+        showAll = !showAll;
         void render();
       }
     });
@@ -91,7 +96,7 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
       lastMtimes = newMtimes;
       engine?.pruneStaleEntries(activePaths);
 
-      const output = renderStatus(sessions, { showStale });
+      const output = renderStatus(sessions, { showStale, showAll });
 
       if (output !== lastOutput) {
         process.stdout.write('\x1b[2J\x1b[H');

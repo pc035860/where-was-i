@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import type { AgentSession, AgentType, ActivityLevel } from '../scanner/types.ts';
 import { AGENT_DISPLAY_NAMES } from '../scanner/types.ts';
 import { formatRelativeTime } from '../utils/time.ts';
-import { stringWidth, truncateToWidth } from '../utils/string-width.ts';
+import { stringWidth, truncateToWidth, wrapToLines } from '../utils/string-width.ts';
 
 const STATUS_ICONS: Record<ActivityLevel, string> = {
   active: chalk.green('●'),
@@ -54,27 +54,30 @@ function renderAgentCard(session: AgentSession, innerWidth: number): string[] {
   const intentText = session.intent
     ? `→ ${session.intent}`
     : '→ …';
-  const truncatedIntent = truncateToWidth(intentText, innerWidth);
-  const line2 = padRight(
-    session.intent ? chalk.white(truncatedIntent) : chalk.dim(truncatedIntent),
-    innerWidth
+  const colorFn2 = session.intent ? chalk.white : chalk.dim;
+  const intentLines = wrapToLines(intentText, innerWidth, 2).map(
+    (line) => padRight(colorFn2(line), innerWidth)
   );
 
-  return [line1, line2];
+  return [line1, ...intentLines];
+}
+
+export interface RenderOptions {
+  showStale: boolean;
+  showAll?: boolean;
 }
 
 export function renderStatus(
   sessions: AgentSession[],
-  options: { showStale: boolean }
+  options: RenderOptions
 ): string {
   const termWidth = process.stdout.columns || 60;
-  const boxWidth = Math.min(termWidth - 4, 56);
+  const termRows = process.stdout.rows || 24;
+  const boxWidth = termWidth - 4;
   const innerWidth = boxWidth - 6;
 
   const buckets: Record<ActivityLevel, AgentSession[]> = { active: [], recent: [], stale: [] };
   for (const s of sessions) buckets[s.activityLevel].push(s);
-
-  const lines: string[] = [];
 
   const b = chalk.hex('#888888');
   const topBorder = `  ${b('┌─')} ${chalk.bold('Where Was I')} ${b('─'.repeat(boxWidth - 16) + '┐')}`;
@@ -85,39 +88,78 @@ export function renderStatus(
     return `  ${b('│')}  ${padRight(content, innerWidth)}  ${b('│')}`;
   };
 
-  lines.push(topBorder);
-
   const visibleSessions = [...buckets.active, ...buckets.recent];
 
   if (visibleSessions.length === 0 && (!options.showStale || buckets.stale.length === 0)) {
+    return [topBorder, emptyLine, wrapLine(chalk.dim('No active agent sessions')), emptyLine, bottomBorder].join('\n');
+  }
+
+  const cards = visibleSessions.map((session) => ({
+    session,
+    lines: renderAgentCard(session, innerWidth),
+  }));
+
+  const staleCards = options.showStale
+    ? buckets.stale.map((session) => ({ session, lines: renderAgentCard(session, innerWidth) }))
+    : [];
+
+  const overhead = 3;
+  const overflowLineHeight = 2;
+  const staleDividerHeight = options.showStale && staleCards.length > 0 ? 2 : 0;
+  const availableRows = termRows - overhead - staleDividerHeight;
+
+  let mainCards = cards;
+  let overflowCount = 0;
+
+  if (!options.showAll) {
+    let usedRows = 0;
+    let fitCount = 0;
+
+    for (const card of cards) {
+      const cardHeight = 1 + card.lines.length;
+      if (usedRows + cardHeight + overflowLineHeight > availableRows && fitCount < cards.length) {
+        break;
+      }
+      usedRows += cardHeight;
+      fitCount++;
+    }
+
+    if (fitCount < cards.length) {
+      mainCards = cards.slice(0, fitCount);
+      overflowCount = cards.length - fitCount;
+    }
+  }
+
+  const lines: string[] = [];
+  lines.push(topBorder);
+
+  for (const card of mainCards) {
     lines.push(emptyLine);
-    lines.push(wrapLine(chalk.dim('No active agent sessions')));
+    for (const cardLine of card.lines) {
+      lines.push(wrapLine(cardLine));
+    }
+  }
+
+  if (overflowCount > 0) {
     lines.push(emptyLine);
-  } else {
-    for (const session of visibleSessions) {
+    lines.push(wrapLine(chalk.dim(`+${overflowCount} more sessions (a to expand)`)));
+  }
+
+  if (options.showStale && staleCards.length > 0) {
+    lines.push(emptyLine);
+    const dividerText = '── stale ';
+    const divider = dividerText + '─'.repeat(innerWidth - dividerText.length);
+    lines.push(wrapLine(chalk.dim(divider)));
+
+    for (const card of staleCards) {
       lines.push(emptyLine);
-      for (const cardLine of renderAgentCard(session, innerWidth)) {
+      for (const cardLine of card.lines) {
         lines.push(wrapLine(cardLine));
       }
     }
-
-    if (options.showStale && buckets.stale.length > 0) {
-      lines.push(emptyLine);
-      const dividerText = '── stale ';
-      const divider = dividerText + '─'.repeat(innerWidth - dividerText.length);
-      lines.push(wrapLine(chalk.dim(divider)));
-
-      for (const session of buckets.stale) {
-        lines.push(emptyLine);
-        for (const cardLine of renderAgentCard(session, innerWidth)) {
-          lines.push(wrapLine(cardLine));
-        }
-      }
-    }
-
-    lines.push(emptyLine);
   }
 
+  lines.push(emptyLine);
   lines.push(bottomBorder);
 
   return lines.join('\n');

@@ -13,7 +13,7 @@ export function buildIntentPrompt(context: ConversationContext): string {
     ? context.recentTools.join(', ')
     : '(none)';
 
-  return `Based on this coding session context, output ONE sentence in Traditional Chinese (繁體中文) describing the current development intent. Max 30 characters. Be specific and concrete.
+  return `Based on this coding session context, output TWO sentences in Traditional Chinese (繁體中文). First sentence: what is being worked on. Second sentence: current progress or next step. Max 60 characters total. Be specific and concrete.
 
 Project: ${context.projectName}
 
