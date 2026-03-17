@@ -5,9 +5,9 @@ import { formatRelativeTime } from '../utils/time.ts';
 import { stringWidth, truncateToWidth } from '../utils/string-width.ts';
 
 const STATUS_ICONS: Record<ActivityLevel, string> = {
-  active: '🟢',
-  recent: '🟡',
-  stale: '⚪',
+  active: chalk.green('●'),
+  recent: chalk.yellow('●'),
+  stale: chalk.gray('●'),
 };
 
 function padRight(str: string, len: number): string {
