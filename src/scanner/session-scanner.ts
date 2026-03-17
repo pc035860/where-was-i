@@ -3,7 +3,7 @@ import { homedir } from 'node:os';
 import { basename, join } from 'node:path';
 import { Glob } from 'bun';
 import type { AgentSession, AgentType } from './types.ts';
-import { computeActivityLevel } from './types.ts';
+import { SESSION_ID_LENGTH, computeActivityLevel } from './types.ts';
 import {
   extractCwdFromClaudeSession,
   extractCwdFromCodexSession,
@@ -14,12 +14,30 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl$/i;
 
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const CODEX_TIMESTAMP_LENGTH = 20;
+
+function extractSessionId(agentType: AgentType, filePath: string): string {
+  const filename = basename(filePath);
+  switch (agentType) {
+    case 'claude':
+      return filename.replace('.jsonl', '').slice(0, SESSION_ID_LENGTH);
+    case 'codex': {
+      const stem = filename.replace('rollout-', '').replace('.jsonl', '');
+      return stem.slice(CODEX_TIMESTAMP_LENGTH, CODEX_TIMESTAMP_LENGTH + SESSION_ID_LENGTH);
+    }
+    case 'gemini': {
+      const stem = filename.replace('.json', '');
+      const lastDash = stem.lastIndexOf('-');
+      return lastDash >= 0 ? stem.slice(lastDash + 1, lastDash + 1 + SESSION_ID_LENGTH) : stem.slice(0, SESSION_ID_LENGTH);
+    }
+  }
+}
 
 interface RawSession {
   path: string;
   mtime: Date;
   agentType: AgentType;
-  groupKey: string;
+  sessionId: string;
   projectName: string;
   projectPath: string;
 }
@@ -60,7 +78,7 @@ async function scanClaudeSessions(): Promise<RawSession[]> {
         path: file,
         mtime: stats.mtime,
         agentType: 'claude',
-        groupKey: `claude:${encodedPath}`,
+        sessionId: extractSessionId('claude', file),
         projectName,
         projectPath,
       });
@@ -101,7 +119,7 @@ async function scanCodexSessions(): Promise<RawSession[]> {
         path: file,
         mtime: stats.mtime,
         agentType: 'codex',
-        groupKey: `codex:${cwd}`,
+        sessionId: extractSessionId('codex', file),
         projectName,
         projectPath: cwd,
       });
@@ -139,7 +157,7 @@ async function scanGeminiSessions(): Promise<RawSession[]> {
         path: file,
         mtime: stats.mtime,
         agentType: 'gemini',
-        groupKey: `gemini:${info.projectDir}`,
+        sessionId: extractSessionId('gemini', file),
         projectName,
         projectPath: info.displayName,
       });
@@ -151,19 +169,6 @@ async function scanGeminiSessions(): Promise<RawSession[]> {
   return sessions;
 }
 
-function pickLatestPerGroup(sessions: RawSession[]): RawSession[] {
-  const groups = new Map<string, RawSession>();
-
-  for (const session of sessions) {
-    const existing = groups.get(session.groupKey);
-    if (!existing || session.mtime.getTime() > existing.mtime.getTime()) {
-      groups.set(session.groupKey, session);
-    }
-  }
-
-  return Array.from(groups.values());
-}
-
 export async function scanAllSessions(): Promise<AgentSession[]> {
   const [claudeSessions, codexSessions, geminiSessions] = await Promise.all([
     scanClaudeSessions(),
@@ -172,11 +177,11 @@ export async function scanAllSessions(): Promise<AgentSession[]> {
   ]);
 
   const allRaw = [...claudeSessions, ...codexSessions, ...geminiSessions];
-  const latest = pickLatestPerGroup(allRaw);
 
-  const sessions: AgentSession[] = latest.map((raw) => ({
+  const sessions: AgentSession[] = allRaw.map((raw) => ({
     agentType: raw.agentType,
     sessionPath: raw.path,
+    sessionId: raw.sessionId,
     projectName: raw.projectName,
     projectPath: raw.projectPath,
     mtime: raw.mtime,

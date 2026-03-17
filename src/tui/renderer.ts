@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import type { AgentSession, AgentType, ActivityLevel } from '../scanner/types.ts';
-import { AGENT_DISPLAY_NAMES } from '../scanner/types.ts';
+import { AGENT_DISPLAY_NAMES, SESSION_ID_LENGTH } from '../scanner/types.ts';
 import { formatRelativeTime } from '../utils/time.ts';
 import { stringWidth, truncateToWidth, wrapToLines } from '../utils/string-width.ts';
 
@@ -36,7 +36,8 @@ function renderAgentCard(session: AgentSession, innerWidth: number): string[] {
   const paddedAgent = padRight(colorFn(agentName), AGENT_NAME_WIDTH);
   const prefixWidth = 2 + AGENT_NAME_WIDTH + 2;
   const PROJECT_PAD_WIDTH = 2;
-  const maxProjectWidth = innerWidth - prefixWidth - timeLen - 1 - PROJECT_PAD_WIDTH;
+  const SESSION_ID_WIDTH = 1 + SESSION_ID_LENGTH;
+  const maxProjectWidth = innerWidth - prefixWidth - timeLen - 1 - PROJECT_PAD_WIDTH - SESSION_ID_WIDTH;
 
   let project = session.projectName;
   if (stringWidth(project) > maxProjectWidth) {
@@ -46,7 +47,8 @@ function renderAgentCard(session: AgentSession, innerWidth: number): string[] {
   }
 
   const styledProject = chalk.white.bgHex('#2a2a2a')(` ${project} `);
-  const label = `${icon} ${paddedAgent}  ${styledProject}`;
+  const styledSessionId = chalk.dim(` ${session.sessionId}`);
+  const label = `${icon} ${paddedAgent}  ${styledProject}${styledSessionId}`;
   const gap = innerWidth - stringWidth(label) - timeLen;
   const line1 = gap > 0
     ? `${label}${' '.repeat(gap)}${timeStr}`

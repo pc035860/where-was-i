@@ -5,6 +5,7 @@ export type ActivityLevel = 'active' | 'recent' | 'stale';
 export interface AgentSession {
   agentType: AgentType;
   sessionPath: string;
+  sessionId: string;
   projectName: string;
   projectPath: string;
   mtime: Date;
@@ -28,6 +29,8 @@ export function computeActivityLevel(mtime: Date): ActivityLevel {
   if (age < RECENT_THRESHOLD_MS) return 'recent';
   return 'stale';
 }
+
+export const SESSION_ID_LENGTH = 7;
 
 export const AGENT_DISPLAY_NAMES: Record<AgentType, string> = {
   claude: 'claude',
