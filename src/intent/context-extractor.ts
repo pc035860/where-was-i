@@ -3,9 +3,9 @@ import type { AgentSession, ConversationContext } from '../scanner/types.ts';
 const MAX_USER_MESSAGES = 5;
 const MAX_ASSISTANT_MESSAGES = 5;
 const MAX_TOOLS = 5;
-const MAX_MSG_LENGTH = 100;
-const MAX_ASST_LENGTH = 150;
-const TAIL_BYTES = 50 * 1024;
+const MAX_MSG_LENGTH = 500;
+const MAX_ASST_LENGTH = 500;
+const SYSTEM_TAG_RE = /^<(?:local-command-caveat|command-name|command-message|command-args|system-reminder)[\s>]/;
 
 function truncate(str: string, max: number): string {
   if (str.length <= max) return str;
@@ -21,20 +21,6 @@ function extractTextContent(content: unknown): string {
       .join(' ');
   }
   return '';
-}
-
-async function readTail(filePath: string): Promise<string> {
-  const file = Bun.file(filePath);
-  const size = file.size;
-
-  if (size <= TAIL_BYTES) {
-    return file.text();
-  }
-
-  const tailBlob = file.slice(size - TAIL_BYTES, size);
-  const text = await tailBlob.text();
-  const firstNewline = text.indexOf('\n');
-  return firstNewline >= 0 ? text.slice(firstNewline + 1) : text;
 }
 
 interface ParsedChunk {
@@ -65,7 +51,7 @@ async function buildJsonlContext(
   const assistantMessages: string[] = [];
   const recentTools: string[] = [];
 
-  const content = await readTail(session.sessionPath);
+  const content = await Bun.file(session.sessionPath).text();
   for (const line of content.split('\n')) {
     if (!line.trim()) continue;
     try {
@@ -86,8 +72,11 @@ function parseClaudeLine(data: Record<string, unknown>): ParsedChunk {
   const chunk: ParsedChunk = {};
 
   if (data.type === 'user') {
-    const text = extractTextContent((data.message as { content?: unknown })?.content);
-    if (text.trim()) chunk.userMsg = truncate(text.trim(), MAX_MSG_LENGTH);
+    const raw = (data.message as { content?: unknown })?.content;
+    if (typeof raw === 'string' && !SYSTEM_TAG_RE.test(raw.trim())) {
+      const text = raw.trim();
+      if (text) chunk.userMsg = truncate(text, MAX_MSG_LENGTH);
+    }
   }
 
   if (data.type === 'assistant' && (data.message as { content?: unknown })?.content) {

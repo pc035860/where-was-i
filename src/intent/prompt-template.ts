@@ -1,29 +1,36 @@
 import type { ConversationContext } from '../scanner/types.ts';
 
+function wrapMessages(messages: string[]): string {
+  if (messages.length === 0) return '<msg>(none)</msg>';
+  return messages.map((m) => `<msg>${m}</msg>`).join('\n');
+}
+
 export function buildIntentPrompt(context: ConversationContext): string {
-  const userSection = context.userMessages.length > 0
-    ? context.userMessages.map((m) => `- ${m}`).join('\n')
-    : '- (none)';
-
-  const assistantSection = context.assistantMessages.length > 0
-    ? context.assistantMessages.map((m) => `- ${m}`).join('\n')
-    : '- (none)';
-
   const toolSection = context.recentTools.length > 0
     ? context.recentTools.join(', ')
     : '(none)';
 
-  return `Based on this coding session context, output TWO sentences in Traditional Chinese (繁體中文). First sentence: what is being worked on. Second sentence: current progress or next step. Max 60 characters total. Be specific and concrete.
+  return `<system>You synthesize coding session activity into a brief status line.</system>
 
-Project: ${context.projectName}
+<context>
+<project>${context.projectName}</project>
 
-Recent user messages:
-${userSection}
+<user_messages>
+${wrapMessages(context.userMessages)}
+</user_messages>
 
-Recent assistant responses:
-${assistantSection}
+<assistant_messages>
+${wrapMessages(context.assistantMessages)}
+</assistant_messages>
 
-Recent tools used: ${toolSection}
+<tools>${toolSection}</tools>
+</context>
 
-Intent:`;
+<instructions>
+Output TWO sentences in Traditional Chinese (繁體中文), max 60 characters total.
+1. User intent — what the user wants to achieve (NOT the project name)
+2. Current action — what is happening right now
+
+Do NOT restate the project name. Be specific and concrete.
+</instructions>`;
 }

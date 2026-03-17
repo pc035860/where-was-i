@@ -11,6 +11,7 @@ const RETRY_COUNT = 1;
 const RETRY_DELAY_MS = 500;
 const CACHE_PATH = '/tmp/wwi-intent-cache.json';
 const CACHE_FLUSH_MS = 5000;
+const DEBUG_PROMPT_DIR = '/tmp/wwi-debug-prompts';
 
 interface CacheEntry {
   intent: string;
@@ -137,7 +138,19 @@ export class IntentEngine {
     return cached?.intent ?? ctx.userMessages.at(-1) ?? undefined;
   }
 
+  private async dumpPrompt(prompt: string, projectName: string): Promise<void> {
+    try {
+      const { mkdirSync } = await import('node:fs');
+      mkdirSync(DEBUG_PROMPT_DIR, { recursive: true });
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      const safeName = projectName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filePath = `${DEBUG_PROMPT_DIR}/${ts}_${safeName}.txt`;
+      await Bun.write(filePath, prompt);
+    } catch {}
+  }
+
   private async callWithRetry(prompt: string, projectName: string): Promise<string | undefined> {
+    if (this.debug) await this.dumpPrompt(prompt, projectName);
     for (let attempt = 0; attempt <= RETRY_COUNT; attempt++) {
       try {
         const apiStart = Date.now();
