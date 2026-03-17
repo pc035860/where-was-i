@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import type { AgentSession, ActivityLevel } from '../scanner/types.ts';
 import { AGENT_DISPLAY_NAMES } from '../scanner/types.ts';
 import { formatRelativeTime } from '../utils/time.ts';
+import { stringWidth, truncateToWidth } from '../utils/string-width.ts';
 
 const STATUS_ICONS: Record<ActivityLevel, string> = {
   active: '🟢',
@@ -9,12 +10,8 @@ const STATUS_ICONS: Record<ActivityLevel, string> = {
   stale: '⚪',
 };
 
-function visibleLength(str: string): number {
-  return Bun.stripANSI(str).length;
-}
-
 function padRight(str: string, len: number): string {
-  const diff = len - visibleLength(str);
+  const diff = len - stringWidth(str);
   return diff > 0 ? str + ' '.repeat(diff) : str;
 }
 
@@ -24,19 +21,20 @@ function renderAgentCard(session: AgentSession, innerWidth: number): string[] {
   const time = formatRelativeTime(session.mtime);
 
   const timeStr = chalk.dim(time);
-  const timeLen = visibleLength(timeStr);
+  const timeLen = stringWidth(timeStr);
   const maxLabelLen = innerWidth - timeLen - 1;
 
   let label = `${icon} ${agentName} × ${session.projectName}`;
-  if (visibleLength(label) > maxLabelLen) {
-    const maxProjectLen = maxLabelLen - visibleLength(`${icon} ${agentName} × `) - 1;
-    const truncatedProject = maxProjectLen > 2
-      ? session.projectName.slice(0, maxProjectLen) + '…'
+  if (stringWidth(label) > maxLabelLen) {
+    const prefixWidth = stringWidth(`${icon} ${agentName} × `);
+    const maxProjectWidth = maxLabelLen - prefixWidth;
+    const truncatedProject = maxProjectWidth > 2
+      ? truncateToWidth(session.projectName, maxProjectWidth)
       : session.projectName.slice(0, 3);
     label = `${icon} ${agentName} × ${truncatedProject}`;
   }
 
-  const gap = innerWidth - visibleLength(label) - timeLen;
+  const gap = innerWidth - stringWidth(label) - timeLen;
   const line1 = gap > 0
     ? `${label}${' '.repeat(gap)}${timeStr}`
     : `${label} ${timeStr}`;
@@ -44,10 +42,7 @@ function renderAgentCard(session: AgentSession, innerWidth: number): string[] {
   const intentText = session.intent
     ? `→ ${session.intent}`
     : '→ …';
-  const maxIntentLen = innerWidth;
-  const truncatedIntent = visibleLength(intentText) > maxIntentLen
-    ? intentText.slice(0, maxIntentLen - 1) + '…'
-    : intentText;
+  const truncatedIntent = truncateToWidth(intentText, innerWidth);
   const line2 = padRight(
     session.intent ? chalk.cyan(truncatedIntent) : chalk.dim(truncatedIntent),
     innerWidth
@@ -62,14 +57,14 @@ export function renderStatus(
 ): string {
   const termWidth = process.stdout.columns || 60;
   const boxWidth = Math.min(termWidth - 4, 56);
-  const innerWidth = boxWidth - 4;
+  const innerWidth = boxWidth - 6;
 
   const buckets: Record<ActivityLevel, AgentSession[]> = { active: [], recent: [], stale: [] };
   for (const s of sessions) buckets[s.activityLevel].push(s);
 
   const lines: string[] = [];
 
-  const topBorder = `  ┌─ ${chalk.bold('WWI')} ${'─'.repeat(boxWidth - 7)}┐`;
+  const topBorder = `  ┌─ ${chalk.bold('WWI')} ${'─'.repeat(boxWidth - 8)}┐`;
   const bottomBorder = `  └${'─'.repeat(boxWidth - 2)}┘`;
   const emptyLine = `  │${' '.repeat(boxWidth - 2)}│`;
 
