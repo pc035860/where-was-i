@@ -24,13 +24,15 @@ function hashContext(ctx: ConversationContext): string {
 
 export class IntentEngine {
   private adapter: LlmAdapter | null = null;
+  private debug: boolean;
   private cache = new Map<string, CacheEntry>();
   private rateLimits = new Map<string, number[]>();
   private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private pendingCallbacks = new Map<string, () => void>();
 
-  constructor(adapter?: LlmAdapter | null) {
-    this.adapter = adapter !== undefined ? adapter : createAdapter();
+  constructor(options?: { adapter?: LlmAdapter | null; debug?: boolean }) {
+    this.debug = options?.debug ?? false;
+    this.adapter = options?.adapter !== undefined ? options.adapter : createAdapter(this.debug);
   }
 
   get isAvailable(): boolean {
@@ -79,7 +81,9 @@ export class IntentEngine {
       const apiStart = Date.now();
       const intent = await this.adapter.generateIntent(prompt);
       const apiMs = Date.now() - apiStart;
-      process.stderr.write(`[intent] ${ctx.projectName}: ${apiMs}ms\n`);
+      if (this.debug) {
+        process.stderr.write(`[intent] ${ctx.projectName}: ${apiMs}ms\n`);
+      }
 
       if (intent) {
         this.cache.set(session.sessionPath, { intent, hash });

@@ -13,6 +13,7 @@ program
   .description('Show current agent session status')
   .option('--show-stale', 'Show stale sessions (>2h)', false)
   .option('--no-intent', 'Skip intent synthesis')
+  .option('--debug', 'Show debug output', false)
   .action(async (options: CommandOptions) => {
     const { statusCommand } = await import('./tui/watch-loop.ts');
     await statusCommand(options);
@@ -23,6 +24,7 @@ program
   .description('Continuously watch agent sessions')
   .option('--show-stale', 'Show stale sessions (>2h)', false)
   .option('--no-intent', 'Skip intent synthesis')
+  .option('--debug', 'Show debug output', false)
   .action(async (options: CommandOptions) => {
     const { watchCommand } = await import('./tui/watch-loop.ts');
     await watchCommand(options);

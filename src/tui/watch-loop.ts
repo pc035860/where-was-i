@@ -5,13 +5,14 @@ import { renderStatus } from './renderer.ts';
 export interface CommandOptions {
   showStale: boolean;
   intent: boolean;
+  debug: boolean;
 }
 
 export async function statusCommand(options: CommandOptions): Promise<void> {
   const sessions = await scanAllSessions();
 
   if (options.intent) {
-    const engine = new IntentEngine();
+    const engine = new IntentEngine({ debug: options.debug });
     const visible = sessions.filter((s) => s.activityLevel !== 'stale');
     await Promise.allSettled(
       visible.map(async (session) => {
@@ -33,7 +34,7 @@ export async function statusCommand(options: CommandOptions): Promise<void> {
 export async function watchCommand(options: CommandOptions): Promise<void> {
   const POLL_INTERVAL_MS = 2000;
 
-  const engine = options.intent ? new IntentEngine() : null;
+  const engine = options.intent ? new IntentEngine({ debug: options.debug }) : null;
   let lastMtimes = new Map<string, number>();
   let showStale = options.showStale;
 
