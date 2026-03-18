@@ -2,6 +2,7 @@ import { stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, join } from 'node:path';
 import { Glob } from 'bun';
+import { extractClaudeTimestamp, extractCodexTimestamp, extractGeminiTimestamp } from './content-timestamp.ts';
 import {
   extractCwdFromClaudeSession,
   extractCwdFromCodexSession,
@@ -69,13 +70,16 @@ async function scanClaudeSessions(): Promise<RawSession[]> {
 
       const encodedPath = file.replace(`${baseDir}/`, '').split('/').slice(0, -1).join('/');
 
-      const cwd = await extractCwdFromClaudeSession(file);
+      const [cwd, contentTimestamp] = await Promise.all([
+        extractCwdFromClaudeSession(file),
+        extractClaudeTimestamp(file),
+      ]);
       const projectName = cwd ? basename(cwd) : encodedPath;
       const projectPath = cwd || encodedPath;
 
       sessions.push({
         path: file,
-        mtime: stats.mtime,
+        mtime: contentTimestamp ?? stats.mtime,
         agentType: 'claude',
         sessionId: extractSessionId('claude', file),
         projectName,
@@ -107,14 +111,17 @@ async function scanCodexSessions(): Promise<RawSession[]> {
       const stats = await stat(file);
       if (now - stats.mtime.getTime() > MAX_AGE_MS) continue;
 
-      const cwd = await extractCwdFromCodexSession(file);
+      const [cwd, contentTimestamp] = await Promise.all([
+        extractCwdFromCodexSession(file),
+        extractCodexTimestamp(file),
+      ]);
       if (!cwd) continue;
 
       const projectName = basename(cwd);
 
       sessions.push({
         path: file,
-        mtime: stats.mtime,
+        mtime: contentTimestamp ?? stats.mtime,
         agentType: 'codex',
         sessionId: extractSessionId('codex', file),
         projectName,
@@ -143,14 +150,17 @@ async function scanGeminiSessions(): Promise<RawSession[]> {
       const stats = await stat(file);
       if (now - stats.mtime.getTime() > MAX_AGE_MS) continue;
 
-      const info = await extractProjectFromGeminiSession(file);
+      const [info, contentTimestamp] = await Promise.all([
+        extractProjectFromGeminiSession(file),
+        extractGeminiTimestamp(file),
+      ]);
       if (!info) continue;
 
       const projectName = basename(info.displayName);
 
       sessions.push({
         path: file,
-        mtime: stats.mtime,
+        mtime: contentTimestamp ?? stats.mtime,
         agentType: 'gemini',
         sessionId: extractSessionId('gemini', file),
         projectName,

@@ -47,7 +47,7 @@ src/
 
 tests/
 ├── utils/        # time, string-width tests
-├── scanner/      # types/constants tests
+├── scanner/      # types/constants tests, content-timestamp tests
 └── intent/       # prompt-template, context-extractor (fixture-based), intent-engine (mock adapter)
     └── fixtures/ # Claude JSONL, Codex JSONL, Gemini JSON fixture files
 ```
@@ -61,6 +61,7 @@ tests/
 - **JSONL sessions** (Claude, Codex) — use `readTail()` with `Bun.file().slice()` for efficiency
 - **All sessions display independently** — no per-group merging; each session gets a 7-char `sessionId` shown in TUI
 - **Session ID length** governed by `SESSION_ID_LENGTH` in `types.ts` — scanner and renderer both reference this single constant
+- **Session activity time uses content timestamps** — `content-timestamp.ts` extracts the last `timestamp` (Claude/Codex JSONL) or `lastUpdated` (Gemini JSON) from file content; filesystem mtime is only a fallback. Scanner pre-filters by fs mtime for the 24h age gate (performance), then overrides with content timestamp for activity level
 - **Activity thresholds** (`ACTIVE_THRESHOLD_MS`, `RECENT_THRESHOLD_MS`) are exported from `types.ts` — tests reference these directly instead of magic numbers
 - **Prompt template escapes XML** — `escapeXml()` in `prompt-template.ts` prevents session content from breaking prompt structure
 
@@ -79,6 +80,7 @@ tests/
 - Renderer uses `Math.max(0, ...)` guards on all `String.repeat()` calls — narrow terminals would otherwise throw `RangeError`
 - `wrapToLines()` has `available <= 0` guard — prevents infinite loop when called with zero/negative maxWidth
 - Intent engine disk cache (`/tmp/wwi-intent-cache.json`) is shared across test runs — tests must delete it in `beforeEach`/`afterEach` for isolation
+- Filesystem mtime is unreliable for session activity — backup/sync tools (iCloud, rsync) batch-touch files, making stale sessions appear recent. Always use content timestamps from `content-timestamp.ts`
 
 ## Reference Project
 
