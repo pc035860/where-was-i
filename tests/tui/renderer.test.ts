@@ -7,6 +7,7 @@ function makeSession(overrides: Partial<AgentSession> = {}): AgentSession {
     agentType: 'claude',
     sessionPath: '/home/user/.claude/projects/test/abc12345-1234-1234-1234-123456789abc.jsonl',
     sessionId: 'abc1234',
+    fullSessionId: 'abc12345-1234-1234-1234-123456789abc',
     projectName: 'test-project',
     projectPath: '/home/user/code/test-project',
     mtime: new Date(),

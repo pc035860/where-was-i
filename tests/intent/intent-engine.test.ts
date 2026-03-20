@@ -20,6 +20,7 @@ function makeSession(id: string, sessionPath?: string): AgentSession {
     agentType: 'claude',
     sessionPath: sessionPath ?? join(FIXTURES, 'claude-session.jsonl'),
     sessionId: id,
+    fullSessionId: `${id}-0000-0000-0000-000000000000`,
     projectName: 'test-project',
     projectPath: '/test/path',
     mtime: new Date(),

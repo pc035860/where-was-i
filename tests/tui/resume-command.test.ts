@@ -7,6 +7,7 @@ function makeSession(overrides: Partial<AgentSession> = {}): AgentSession {
     agentType: 'claude',
     sessionPath: '/home/user/.claude/projects/test/abc12345-1234-1234-1234-123456789abc.jsonl',
     sessionId: 'abc1234',
+    fullSessionId: 'abc12345-1234-1234-1234-123456789abc',
     projectName: 'test-project',
     projectPath: '/home/user/code/test-project',
     mtime: new Date(),
@@ -16,18 +17,27 @@ function makeSession(overrides: Partial<AgentSession> = {}): AgentSession {
 }
 
 describe('buildResumeCommand', () => {
-  test('returns sessionId for claude sessions', () => {
-    const session = makeSession({ agentType: 'claude', sessionId: 'abc1234' });
-    expect(buildResumeCommand(session)).toBe('abc1234');
+  test('returns fullSessionId for claude sessions', () => {
+    const session = makeSession({
+      agentType: 'claude',
+      fullSessionId: 'abc12345-1234-1234-1234-123456789abc',
+    });
+    expect(buildResumeCommand(session)).toBe('abc12345-1234-1234-1234-123456789abc');
   });
 
-  test('returns sessionId for codex sessions', () => {
-    const session = makeSession({ agentType: 'codex', sessionId: 'xyz7890' });
-    expect(buildResumeCommand(session)).toBe('xyz7890');
+  test('returns fullSessionId for codex sessions', () => {
+    const session = makeSession({
+      agentType: 'codex',
+      fullSessionId: '01969eaf-1234-7abc-9def-123456789abc',
+    });
+    expect(buildResumeCommand(session)).toBe('01969eaf-1234-7abc-9def-123456789abc');
   });
 
-  test('returns sessionId for gemini sessions', () => {
-    const session = makeSession({ agentType: 'gemini', sessionId: 'gem1234' });
-    expect(buildResumeCommand(session)).toBe('gem1234');
+  test('returns fullSessionId for gemini sessions', () => {
+    const session = makeSession({
+      agentType: 'gemini',
+      fullSessionId: 'session-1234abcd-5678-efab-9012-ijkl34567890',
+    });
+    expect(buildResumeCommand(session)).toBe('session-1234abcd-5678-efab-9012-ijkl34567890');
   });
 });

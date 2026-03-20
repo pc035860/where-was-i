@@ -12,6 +12,7 @@ function makeSession(agentType: 'claude' | 'codex' | 'gemini', sessionPath: stri
     agentType,
     sessionPath,
     sessionId: 'test123',
+    fullSessionId: 'test1230-0000-0000-0000-000000000000',
     projectName: 'test-project',
     projectPath: '/test/path',
     mtime: new Date(),
