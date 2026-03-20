@@ -25,7 +25,7 @@ bun run lint:fix                       # Biome auto-fix
 - `q` / `Ctrl-C` — quit
 - `s` — toggle stale sessions
 - `a` — toggle expand all (adaptive height truncates by default)
-- `1`–`9` — copy session ID to clipboard
+- `1`–`9` — copy full session ID to clipboard
 
 ## Tech Stack
 
@@ -62,6 +62,7 @@ tests/
 - **Gemini sessions are full JSON** (not JSONL) — must read entire file, never truncate with readTail
 - **JSONL sessions** (Claude, Codex) — use `readTail()` with `Bun.file().slice()` for efficiency
 - **All sessions display independently** — no per-group merging; each session gets a 7-char `sessionId` shown in TUI
+- **Dual session IDs** — `AgentSession` has both `sessionId` (7-char display) and `fullSessionId` (complete identifier for clipboard copy). `extractFullSessionId()` and `deriveShortId()` are exported from `session-scanner.ts` for direct testing
 - **Session ID length** governed by `SESSION_ID_LENGTH` in `types.ts` — scanner and renderer both reference this single constant
 - **Session activity time uses content timestamps** — `content-timestamp.ts` extracts the last `timestamp` (Claude/Codex JSONL) or `lastUpdated` (Gemini JSON) from file content; filesystem mtime is only a fallback. Scanner pre-filters by fs mtime for the 24h age gate (performance), then overrides with content timestamp for activity level
 - **Activity thresholds** (`ACTIVE_THRESHOLD_MS`, `RECENT_THRESHOLD_MS`) are exported from `types.ts` — tests reference these directly instead of magic numbers
@@ -82,6 +83,7 @@ tests/
 - Codex content arrays use `input_text` (user) and `output_text` (assistant), not `text` — `extractTextContent()` must handle all three types
 - Codex UUIDs are v7 (timestamp prefix) — session ID must be extracted from the **last** UUID segment to avoid collisions between nearby sessions
 - Renderer uses `Math.max(0, ...)` guards on all `String.repeat()` calls — narrow terminals would otherwise throw `RangeError`
+- `statusMessage` in renderer is truncated via `truncateToWidth()` — full session IDs can exceed `innerWidth` on narrow terminals
 - `wrapToLines()` has `available <= 0` guard — prevents infinite loop when called with zero/negative maxWidth
 - Intent engine disk cache (`/tmp/wwi-intent-cache.json`) is shared across test runs — tests must delete it in `beforeEach`/`afterEach` for isolation
 - Filesystem mtime is unreliable for session activity — backup/sync tools (iCloud, rsync) batch-touch files, making stale sessions appear recent. Always use content timestamps from `content-timestamp.ts`
