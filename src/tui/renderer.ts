@@ -175,7 +175,7 @@ export function renderStatus(sessions: AgentSession[], options: RenderOptions): 
 
   if (options.statusMessage) {
     const raw = `✓ ${options.statusMessage}`;
-    const msg = stringWidth(raw) > innerWidth ? truncateToWidth(raw, innerWidth - 1) + '…' : raw;
+    const msg = stringWidth(raw) > innerWidth ? truncateToWidth(raw, innerWidth) : raw;
     lines.push(emptyLine);
     lines.push(wrapLine(chalk.green(msg)));
   }
