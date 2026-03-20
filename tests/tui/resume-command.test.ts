@@ -16,37 +16,18 @@ function makeSession(overrides: Partial<AgentSession> = {}): AgentSession {
 }
 
 describe('buildResumeCommand', () => {
-  test('returns claude -r {uuid} for claude sessions', () => {
-    const session = makeSession({
-      agentType: 'claude',
-      sessionPath: '/home/.claude/projects/test/a1b2c3d4-5678-9abc-def0-123456789abc.jsonl',
-    });
-    expect(buildResumeCommand(session)).toBe('claude -r a1b2c3d4-5678-9abc-def0-123456789abc');
-  });
-
-  test('strips .jsonl extension from claude session path', () => {
-    const session = makeSession({
-      agentType: 'claude',
-      sessionPath: '/deep/nested/path/my-uuid.jsonl',
-    });
-    expect(buildResumeCommand(session)).toBe('claude -r my-uuid');
+  test('returns sessionId for claude sessions', () => {
+    const session = makeSession({ agentType: 'claude', sessionId: 'abc1234' });
+    expect(buildResumeCommand(session)).toBe('abc1234');
   });
 
   test('returns sessionId for codex sessions', () => {
-    const session = makeSession({
-      agentType: 'codex',
-      sessionId: 'xyz7890',
-      sessionPath: '/home/.codex/sessions/rollout-abc-xyz7890def.jsonl',
-    });
+    const session = makeSession({ agentType: 'codex', sessionId: 'xyz7890' });
     expect(buildResumeCommand(session)).toBe('xyz7890');
   });
 
   test('returns sessionId for gemini sessions', () => {
-    const session = makeSession({
-      agentType: 'gemini',
-      sessionId: 'gem1234',
-      sessionPath: '/home/.gemini/tmp/123/chats/session-gem1234abc.json',
-    });
+    const session = makeSession({ agentType: 'gemini', sessionId: 'gem1234' });
     expect(buildResumeCommand(session)).toBe('gem1234');
   });
 });

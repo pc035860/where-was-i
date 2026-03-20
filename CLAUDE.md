@@ -25,7 +25,7 @@ bun run lint:fix                       # Biome auto-fix
 - `q` / `Ctrl-C` — quit
 - `s` — toggle stale sessions
 - `a` — toggle expand all (adaptive height truncates by default)
-- `1`–`9` — copy session resume command to clipboard (Claude: `claude -r {uuid}`, others: session ID)
+- `1`–`9` — copy session ID to clipboard
 
 ## Tech Stack
 
