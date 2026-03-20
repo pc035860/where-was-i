@@ -147,7 +147,7 @@ if (arg === '--watch') {
 
   const draw = () => {
     process.stdout.write('\x1b[2J\x1b[H');
-    process.stdout.write(`${renderStatus(sessions, { showStale, showAll })}\n`);
+    process.stdout.write(`${renderStatus(sessions, { showStale, showAll }).output}\n`);
     process.stdout.write(chalk.dim('\n  q: quit  a: toggle all  s: toggle stale\n'));
   };
 
@@ -156,9 +156,9 @@ if (arg === '--watch') {
   setInterval(draw, 2000);
 } else {
   console.log('=== showAll: false ===');
-  console.log(renderStatus(sessions, { showStale: false, showAll: false }));
+  console.log(renderStatus(sessions, { showStale: false, showAll: false }).output);
   console.log('\n=== showAll: true ===');
-  console.log(renderStatus(sessions, { showStale: false, showAll: true }));
+  console.log(renderStatus(sessions, { showStale: false, showAll: true }).output);
   console.log('\n=== showAll: true + showStale ===');
-  console.log(renderStatus(sessions, { showStale: true, showAll: true }));
+  console.log(renderStatus(sessions, { showStale: true, showAll: true }).output);
 }
