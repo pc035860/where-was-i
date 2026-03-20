@@ -6,6 +6,7 @@ export interface AgentSession {
   agentType: AgentType;
   sessionPath: string;
   sessionId: string;
+  fullSessionId: string;
   projectName: string;
   projectPath: string;
   mtime: Date;

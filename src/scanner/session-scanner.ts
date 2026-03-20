@@ -15,24 +15,28 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-function extractSessionId(agentType: AgentType, filePath: string): string {
+export function extractFullSessionId(agentType: AgentType, filePath: string): string {
   const filename = basename(filePath);
   switch (agentType) {
     case 'claude':
-      return filename.replace('.jsonl', '').slice(0, SESSION_ID_LENGTH);
-    case 'codex': {
-      const stem = filename.replace('rollout-', '').replace('.jsonl', '');
-      const lastDash = stem.lastIndexOf('-');
-      return lastDash >= 0
-        ? stem.slice(lastDash + 1, lastDash + 1 + SESSION_ID_LENGTH)
-        : stem.slice(0, SESSION_ID_LENGTH);
-    }
+      return filename.replace('.jsonl', '');
+    case 'codex':
+      return filename.replace('rollout-', '').replace('.jsonl', '');
+    case 'gemini':
+      return filename.replace('.json', '');
+  }
+}
+
+export function deriveShortId(agentType: AgentType, fullId: string): string {
+  switch (agentType) {
+    case 'claude':
+      return fullId.slice(0, SESSION_ID_LENGTH);
+    case 'codex':
     case 'gemini': {
-      const stem = filename.replace('.json', '');
-      const lastDash = stem.lastIndexOf('-');
+      const lastDash = fullId.lastIndexOf('-');
       return lastDash >= 0
-        ? stem.slice(lastDash + 1, lastDash + 1 + SESSION_ID_LENGTH)
-        : stem.slice(0, SESSION_ID_LENGTH);
+        ? fullId.slice(lastDash + 1, lastDash + 1 + SESSION_ID_LENGTH)
+        : fullId.slice(0, SESSION_ID_LENGTH);
     }
   }
 }
@@ -41,7 +45,7 @@ interface RawSession {
   path: string;
   mtime: Date;
   agentType: AgentType;
-  sessionId: string;
+  fullSessionId: string;
   projectName: string;
   projectPath: string;
 }
@@ -81,7 +85,7 @@ async function scanClaudeSessions(): Promise<RawSession[]> {
         path: file,
         mtime: contentTimestamp ?? stats.mtime,
         agentType: 'claude',
-        sessionId: extractSessionId('claude', file),
+        fullSessionId: extractFullSessionId('claude', file),
         projectName,
         projectPath,
       });
@@ -123,7 +127,7 @@ async function scanCodexSessions(): Promise<RawSession[]> {
         path: file,
         mtime: contentTimestamp ?? stats.mtime,
         agentType: 'codex',
-        sessionId: extractSessionId('codex', file),
+        fullSessionId: extractFullSessionId('codex', file),
         projectName,
         projectPath: cwd,
       });
@@ -162,7 +166,7 @@ async function scanGeminiSessions(): Promise<RawSession[]> {
         path: file,
         mtime: contentTimestamp ?? stats.mtime,
         agentType: 'gemini',
-        sessionId: extractSessionId('gemini', file),
+        fullSessionId: extractFullSessionId('gemini', file),
         projectName,
         projectPath: info.displayName,
       });
@@ -184,7 +188,8 @@ export async function scanAllSessions(): Promise<AgentSession[]> {
   const sessions: AgentSession[] = allRaw.map((raw) => ({
     agentType: raw.agentType,
     sessionPath: raw.path,
-    sessionId: raw.sessionId,
+    sessionId: deriveShortId(raw.agentType, raw.fullSessionId),
+    fullSessionId: raw.fullSessionId,
     projectName: raw.projectName,
     projectPath: raw.projectPath,
     mtime: raw.mtime,
