@@ -1,7 +1,10 @@
 import type { ProviderName } from '../intent/adapter.ts';
 import { IntentEngine } from '../intent/intent-engine.ts';
 import { scanAllSessions } from '../scanner/session-scanner.ts';
+import type { AgentSession } from '../scanner/types.ts';
+import { copyToClipboard } from '../utils/clipboard.ts';
 import { renderStatus } from './renderer.ts';
+import { buildResumeCommand } from './resume-command.ts';
 
 export interface CommandOptions {
   showStale: boolean;
@@ -29,7 +32,7 @@ export async function statusCommand(options: CommandOptions): Promise<void> {
     await engine.destroy();
   }
 
-  const output = renderStatus(sessions, { showStale: options.showStale, showAll: true });
+  const { output } = renderStatus(sessions, { showStale: options.showStale, showAll: true });
   console.log(output);
   process.exit(0);
 }
@@ -44,8 +47,12 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
   let lastMtimes = new Map<string, number>();
   let showStale = options.showStale;
   let showAll = false;
+  let displayedSessions: AgentSession[] = [];
+  let statusMessage = '';
+  let statusTimer: ReturnType<typeof setTimeout> | null = null;
 
   const cleanup = async () => {
+    if (statusTimer) clearTimeout(statusTimer);
     await engine?.destroy();
     if (process.stdin.isTTY) {
       process.stdin.setRawMode(false);
@@ -61,22 +68,44 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
   const KEY_CTRL_C = 0x03;
   const KEY_S = 0x73;
   const KEY_A = 0x61;
+  const KEY_1 = 0x31;
+  const KEY_9 = 0x39;
 
   if (process.stdin.isTTY) {
     process.stdin.setRawMode(true);
     process.stdin.resume();
     process.stdin.on('data', (key: Buffer) => {
-      if (key[0] === KEY_Q || key[0] === KEY_CTRL_C) {
+      const code = key[0];
+      if (code === undefined) return;
+      if (code === KEY_Q || code === KEY_CTRL_C) {
         void cleanup();
         return;
       }
-      if (key[0] === KEY_S) {
+      if (code === KEY_S) {
         showStale = !showStale;
         void render();
       }
-      if (key[0] === KEY_A) {
+      if (code === KEY_A) {
         showAll = !showAll;
         void render();
+      }
+      if (code >= KEY_1 && code <= KEY_9) {
+        const idx = code - KEY_1;
+        const session = displayedSessions[idx];
+        if (session) {
+          const cmd = buildResumeCommand(session);
+          if (copyToClipboard(cmd)) {
+            statusMessage = `Copied: ${cmd}`;
+          } else {
+            statusMessage = `Copy failed`;
+          }
+          if (statusTimer) clearTimeout(statusTimer);
+          statusTimer = setTimeout(() => {
+            statusMessage = '';
+            redraw();
+          }, 2000);
+          redraw();
+        }
       }
     });
   }
@@ -84,6 +113,17 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
   process.stdout.write('\x1b[?25l');
 
   let lastOutput = '';
+  let lastSessions: AgentSession[] = [];
+
+  const redraw = () => {
+    const { output, displayed } = renderStatus(lastSessions, { showStale, showAll, statusMessage });
+    displayedSessions = displayed;
+    if (output !== lastOutput) {
+      process.stdout.write('\x1b[2J\x1b[H');
+      process.stdout.write(`${output}\n`);
+      lastOutput = output;
+    }
+  };
 
   const render = async () => {
     try {
@@ -109,14 +149,8 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
 
       lastMtimes = newMtimes;
       engine?.pruneStaleEntries(activePaths);
-
-      const output = renderStatus(sessions, { showStale, showAll });
-
-      if (output !== lastOutput) {
-        process.stdout.write('\x1b[2J\x1b[H');
-        process.stdout.write(`${output}\n`);
-        lastOutput = output;
-      }
+      lastSessions = sessions;
+      redraw();
     } catch {
       // scan error, skip this cycle
     }

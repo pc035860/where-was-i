@@ -25,6 +25,7 @@ bun run lint:fix                       # Biome auto-fix
 - `q` / `Ctrl-C` — quit
 - `s` — toggle stale sessions
 - `a` — toggle expand all (adaptive height truncates by default)
+- `1`–`9` — copy session resume command to clipboard (Claude: `claude -r {uuid}`, others: session ID)
 
 ## Tech Stack
 
@@ -42,11 +43,12 @@ bun run lint:fix                       # Biome auto-fix
 src/
 ├── scanner/      # Session discovery across Claude Code / Codex / Gemini CLI
 ├── intent/       # LLM adapter pattern (Gemini/OpenAI) + intent synthesis + context extraction
-├── tui/          # Renderer (box-drawing) + watch loop (ANSI clear+redraw)
-└── utils/        # Time formatting, CJK-aware string width
+├── tui/          # Renderer (box-drawing) + watch loop (ANSI clear+redraw) + resume-command
+└── utils/        # Time formatting, CJK-aware string width, clipboard
 
 tests/
-├── utils/        # time, string-width tests
+├── utils/        # time, string-width, clipboard tests
+├── tui/          # renderer, resume-command tests
 ├── scanner/      # types/constants tests, content-timestamp tests
 └── intent/       # prompt-template, context-extractor (fixture-based), intent-engine (mock adapter)
     └── fixtures/ # Claude JSONL, Codex JSONL, Gemini JSON fixture files
@@ -64,6 +66,8 @@ tests/
 - **Session activity time uses content timestamps** — `content-timestamp.ts` extracts the last `timestamp` (Claude/Codex JSONL) or `lastUpdated` (Gemini JSON) from file content; filesystem mtime is only a fallback. Scanner pre-filters by fs mtime for the 24h age gate (performance), then overrides with content timestamp for activity level
 - **Activity thresholds** (`ACTIVE_THRESHOLD_MS`, `RECENT_THRESHOLD_MS`) are exported from `types.ts` — tests reference these directly instead of magic numbers
 - **Prompt template escapes XML** — `escapeXml()` in `prompt-template.ts` prevents session content from breaking prompt structure
+- **Watch mode has two render paths** — `render()` does full scan + redraw; `redraw()` re-renders last known sessions without scanning. Number key copy and statusMessage timer use `redraw()` to avoid unnecessary disk I/O
+- **Session card indices capped at 9** — `MAX_INDEXED = 9` in renderer; cards beyond 9 render without number and aren't included in `displayed` array. `renderStatus()` returns `{ output, displayed }` where `displayed` maps 1:1 to keys 1–9
 
 ## Gotchas
 
@@ -81,6 +85,8 @@ tests/
 - `wrapToLines()` has `available <= 0` guard — prevents infinite loop when called with zero/negative maxWidth
 - Intent engine disk cache (`/tmp/wwi-intent-cache.json`) is shared across test runs — tests must delete it in `beforeEach`/`afterEach` for isolation
 - Filesystem mtime is unreliable for session activity — backup/sync tools (iCloud, rsync) batch-touch files, making stale sessions appear recent. Always use content timestamps from `content-timestamp.ts`
+- `renderStatus()` returns `RenderResult` (not string) — callers must destructure `{ output }` or `{ output, displayed }`
+- Clipboard uses `pbcopy` (macOS only) via `Bun.spawn` — fire-and-forget, no await on subprocess completion
 
 ## Reference Project
 

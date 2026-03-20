@@ -23,16 +23,17 @@ function padRight(str: string, len: number): string {
   return diff > 0 ? str + ' '.repeat(diff) : str;
 }
 
-function renderAgentCard(session: AgentSession, innerWidth: number): string[] {
+function renderAgentCard(session: AgentSession, innerWidth: number, index?: number): string[] {
   const icon = STATUS_ICONS[session.activityLevel];
   const agentName = AGENT_DISPLAY_NAMES[session.agentType];
   const colorFn = AGENT_COLORS[session.agentType];
   const time = formatRelativeTime(session.mtime);
 
+  const indexWidth = 2;
   const timeStr = chalk.dim(time);
   const timeLen = stringWidth(timeStr);
   const paddedAgent = padRight(colorFn(agentName), AGENT_NAME_WIDTH);
-  const prefixWidth = 2 + AGENT_NAME_WIDTH + 2;
+  const prefixWidth = indexWidth + 2 + AGENT_NAME_WIDTH + 2;
   const PROJECT_PAD_WIDTH = 2;
   const SESSION_ID_WIDTH = 1 + SESSION_ID_LENGTH;
   const maxProjectWidth = innerWidth - prefixWidth - timeLen - 1 - PROJECT_PAD_WIDTH - SESSION_ID_WIDTH;
@@ -42,9 +43,10 @@ function renderAgentCard(session: AgentSession, innerWidth: number): string[] {
     project = maxProjectWidth > 2 ? truncateToWidth(project, maxProjectWidth) : project.slice(0, 3);
   }
 
+  const indexStr = index != null ? `${chalk.dim(String(index))} ` : '  ';
   const styledProject = chalk.white.bgHex('#2a2a2a')(` ${project} `);
   const styledSessionId = chalk.dim(` ${session.sessionId}`);
-  const label = `${icon} ${paddedAgent}  ${styledProject}${styledSessionId}`;
+  const label = `${indexStr}${icon} ${paddedAgent}  ${styledProject}${styledSessionId}`;
   const gap = innerWidth - stringWidth(label) - timeLen;
   const line1 = gap > 0 ? `${label}${' '.repeat(gap)}${timeStr}` : `${label} ${timeStr}`;
 
@@ -58,9 +60,15 @@ function renderAgentCard(session: AgentSession, innerWidth: number): string[] {
 export interface RenderOptions {
   showStale: boolean;
   showAll?: boolean;
+  statusMessage?: string;
 }
 
-export function renderStatus(sessions: AgentSession[], options: RenderOptions): string {
+export interface RenderResult {
+  output: string;
+  displayed: AgentSession[];
+}
+
+export function renderStatus(sessions: AgentSession[], options: RenderOptions): RenderResult {
   const termWidth = process.stdout.columns || 60;
   const termRows = process.stdout.rows || 24;
   const boxWidth = termWidth - 4;
@@ -81,19 +89,35 @@ export function renderStatus(sessions: AgentSession[], options: RenderOptions): 
   const visibleSessions = [...buckets.active, ...buckets.recent];
 
   if (visibleSessions.length === 0 && (!options.showStale || buckets.stale.length === 0)) {
-    return [topBorder, emptyLine, wrapLine(chalk.dim('No active agent sessions')), emptyLine, bottomBorder].join('\n');
+    const output = [
+      topBorder,
+      emptyLine,
+      wrapLine(chalk.dim('No active agent sessions')),
+      emptyLine,
+      bottomBorder,
+    ].join('\n');
+    return { output, displayed: [] };
   }
 
-  const cards = visibleSessions.map((session) => ({
-    session,
-    lines: renderAgentCard(session, innerWidth),
-  }));
+  const MAX_INDEXED = 9;
+
+  const buildCards = (sessionList: AgentSession[], indexOffset: number) =>
+    sessionList.map((session, idx) => {
+      const num = idx + indexOffset;
+      return {
+        session,
+        lines: renderAgentCard(session, innerWidth, num <= MAX_INDEXED ? num : undefined),
+      };
+    });
+
+  const cards = buildCards(visibleSessions, 1);
 
   const hasStale = options.showStale && buckets.stale.length > 0;
   const overhead = 3;
   const overflowLineHeight = 2;
   const staleDividerHeight = hasStale ? 2 : 0;
-  const availableRows = termRows - overhead - staleDividerHeight;
+  const statusMessageHeight = options.statusMessage ? 2 : 0;
+  const availableRows = termRows - overhead - staleDividerHeight - statusMessageHeight;
 
   let mainCards = cards;
   let overflowCount = 0;
@@ -116,6 +140,8 @@ export function renderStatus(sessions: AgentSession[], options: RenderOptions): 
       overflowCount = cards.length - fitCount;
     }
   }
+
+  const displayed: AgentSession[] = mainCards.slice(0, MAX_INDEXED).map((c) => c.session);
 
   const lines: string[] = [];
 
@@ -140,14 +166,20 @@ export function renderStatus(sessions: AgentSession[], options: RenderOptions): 
     const divider = dividerText + '─'.repeat(Math.max(0, innerWidth - dividerText.length));
     lines.push(wrapLine(chalk.dim(divider)));
 
-    const staleCards = buckets.stale.map((session) => ({
-      lines: renderAgentCard(session, innerWidth),
-    }));
+    const staleOffset = visibleSessions.length + 1;
+    const staleCards = buildCards(buckets.stale, staleOffset);
+    const copyableStale = Math.max(0, MAX_INDEXED - displayed.length);
+    for (const c of staleCards.slice(0, copyableStale)) displayed.push(c.session);
     pushCards(staleCards);
+  }
+
+  if (options.statusMessage) {
+    lines.push(emptyLine);
+    lines.push(wrapLine(chalk.green(`✓ ${options.statusMessage}`)));
   }
 
   lines.push(emptyLine);
   lines.push(bottomBorder);
 
-  return lines.join('\n');
+  return { output: lines.join('\n'), displayed };
 }
