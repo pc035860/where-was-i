@@ -20,11 +20,10 @@ export function extractFullSessionId(agentType: AgentType, filePath: string): st
   const filename = basename(filePath);
   switch (agentType) {
     case 'claude':
+    case 'cursor':
       return filename.replace('.jsonl', '');
     case 'codex':
       return filename.replace('rollout-', '').replace('.jsonl', '');
-    case 'cursor':
-      return filename.replace('.jsonl', '');
     case 'gemini':
       return filename.replace('.json', '');
   }
