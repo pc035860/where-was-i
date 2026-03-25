@@ -17,6 +17,11 @@ describe('extractFullSessionId', () => {
     const result = extractFullSessionId('gemini', '/path/to/session-1234abcd-5678-efab-9012-ijkl34567890.json');
     expect(result).toBe('session-1234abcd-5678-efab-9012-ijkl34567890');
   });
+
+  test('cursor: returns full UUID from filename', () => {
+    const result = extractFullSessionId('cursor', '/path/to/a1b2c3d4-5678-4abc-9def-e1f2a3b4c5d6.jsonl');
+    expect(result).toBe('a1b2c3d4-5678-4abc-9def-e1f2a3b4c5d6');
+  });
 });
 
 describe('deriveShortId', () => {
@@ -47,6 +52,12 @@ describe('deriveShortId', () => {
   test('gemini fallback: no dashes uses first SESSION_ID_LENGTH chars', () => {
     const result = deriveShortId('gemini', 'nodashvalue1234');
     expect(result).toBe('nodashv');
+    expect(result).toHaveLength(SESSION_ID_LENGTH);
+  });
+
+  test('cursor: takes first SESSION_ID_LENGTH chars of last dash segment', () => {
+    const result = deriveShortId('cursor', 'a1b2c3d4-5678-4abc-9def-e1f2a3b4c5d6');
+    expect(result).toBe('e1f2a3b');
     expect(result).toHaveLength(SESSION_ID_LENGTH);
   });
 });
