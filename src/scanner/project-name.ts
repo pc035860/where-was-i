@@ -66,3 +66,27 @@ export async function extractProjectFromGeminiSession(
   const dirName = basename(projectDir);
   return { projectDir, displayName: dirName };
 }
+
+export async function extractProjectFromCursorSession(
+  sessionPath: string,
+): Promise<{ workspaceDir: string; displayName: string } | null> {
+  const agentTranscriptsIdx = sessionPath.indexOf('/agent-transcripts/');
+  if (agentTranscriptsIdx === -1) return null;
+
+  const workspaceDir = sessionPath.slice(0, agentTranscriptsIdx);
+
+  const trustedPath = join(workspaceDir, '.workspace-trusted');
+  const trustedFile = Bun.file(trustedPath);
+
+  if (await trustedFile.exists()) {
+    try {
+      const data = JSON.parse(await trustedFile.text());
+      if (typeof data.workspacePath === 'string' && data.workspacePath.trim()) {
+        return { workspaceDir, displayName: data.workspacePath.trim() };
+      }
+    } catch {}
+  }
+
+  const dirName = basename(workspaceDir);
+  return { workspaceDir, displayName: dirName };
+}

@@ -14,6 +14,7 @@ const AGENT_COLORS: Record<AgentType, (s: string) => string> = {
   claude: chalk.redBright,
   codex: chalk.cyanBright,
   gemini: chalk.magentaBright,
+  cursor: chalk.yellowBright,
 };
 
 const AGENT_NAME_WIDTH = Math.max(...Object.values(AGENT_DISPLAY_NAMES).map((n) => n.length));

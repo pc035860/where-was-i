@@ -6,6 +6,7 @@ import { extractClaudeTimestamp, extractCodexTimestamp, extractGeminiTimestamp }
 import {
   extractCwdFromClaudeSession,
   extractCwdFromCodexSession,
+  extractProjectFromCursorSession,
   extractProjectFromGeminiSession,
 } from './project-name.ts';
 import type { AgentSession, AgentType } from './types.ts';
@@ -22,6 +23,8 @@ export function extractFullSessionId(agentType: AgentType, filePath: string): st
       return filename.replace('.jsonl', '');
     case 'codex':
       return filename.replace('rollout-', '').replace('.jsonl', '');
+    case 'cursor':
+      return filename.replace('.jsonl', '');
     case 'gemini':
       return filename.replace('.json', '');
   }
@@ -32,7 +35,8 @@ export function deriveShortId(agentType: AgentType, fullId: string): string {
     case 'claude':
       return fullId.slice(0, SESSION_ID_LENGTH);
     case 'codex':
-    case 'gemini': {
+    case 'gemini':
+    case 'cursor': {
       const lastDash = fullId.lastIndexOf('-');
       return lastDash >= 0
         ? fullId.slice(lastDash + 1, lastDash + 1 + SESSION_ID_LENGTH)
@@ -176,14 +180,53 @@ async function scanGeminiSessions(): Promise<RawSession[]> {
   return sessions;
 }
 
+async function scanCursorSessions(): Promise<RawSession[]> {
+  const baseDir = join(homedir(), '.cursor', 'projects');
+  const sessions: RawSession[] = [];
+  const now = Date.now();
+
+  try {
+    await stat(baseDir);
+  } catch {
+    return [];
+  }
+
+  const glob = new Glob('*/agent-transcripts/*/*.jsonl');
+  for await (const file of glob.scan({ cwd: baseDir, absolute: true })) {
+    const filename = basename(file);
+    if (!UUID_PATTERN.test(filename)) continue;
+
+    try {
+      const stats = await stat(file);
+      if (now - stats.mtime.getTime() > MAX_AGE_MS) continue;
+
+      const info = await extractProjectFromCursorSession(file);
+      const projectName = info ? basename(info.displayName) : basename(file);
+      const projectPath = info?.displayName ?? file;
+
+      sessions.push({
+        path: file,
+        mtime: stats.mtime,
+        agentType: 'cursor',
+        fullSessionId: extractFullSessionId('cursor', file),
+        projectName,
+        projectPath,
+      });
+    } catch {}
+  }
+
+  return sessions;
+}
+
 export async function scanAllSessions(): Promise<AgentSession[]> {
-  const [claudeSessions, codexSessions, geminiSessions] = await Promise.all([
+  const [claudeSessions, codexSessions, geminiSessions, cursorSessions] = await Promise.all([
     scanClaudeSessions(),
     scanCodexSessions(),
     scanGeminiSessions(),
+    scanCursorSessions(),
   ]);
 
-  const allRaw = [...claudeSessions, ...codexSessions, ...geminiSessions];
+  const allRaw = [...claudeSessions, ...codexSessions, ...geminiSessions, ...cursorSessions];
 
   const sessions: AgentSession[] = allRaw.map((raw) => ({
     agentType: raw.agentType,
