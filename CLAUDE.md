@@ -92,7 +92,7 @@ tests/
 - **Cursor sessions** live at `~/.cursor/projects/{workspace-slug}/agent-transcripts/{UUID}/{UUID}.jsonl` — glob pattern `*/agent-transcripts/*/*.jsonl` naturally excludes `subagents/` directory
 - **Cursor JSONL has no timestamps** — `content-timestamp.ts` is not used; scanner falls back to fs mtime. This means activity level may be inaccurate when backup/sync tools touch files
 - **Cursor user messages wrap in XML tags** — `<user_query>`, `<attached_files>`, `<cursor_commands>`, `<additional_instructions>`, `<template_response>`, `<example_response>` must all be stripped. `CURSOR_SYSTEM_TAG_RE` in `context-extractor.ts` handles this. Order matters: strip system blocks first, then unwrap `<user_query>`
-- **Cursor project info** comes from `.workspace-trusted` JSON file (`workspacePath` field) in the workspace directory; fallback is the workspace-slug directory name
+- **Cursor project info** comes from `.workspace-trusted` JSON file (`workspacePath` field) in the workspace directory; fallback uses `resolveWorkspaceSlug()` to reconstruct the real path from the slug via greedy filesystem resolution. Slug dashes are ambiguous (`/`, ` `, or literal `-`) — `resolveSegments()` tries shortest-first, checking dash-joined then space-joined candidates against the filesystem. **Known limitation**: greedy shortest-first has no backtracking — if both `~/code/` and `~/code-gen/` exist, slug `code-gen-app` resolves to `~/code/gen-app` instead of `~/code-gen/app`
 - Cursor `extractFullSessionId` shares the same logic as Claude (strip `.jsonl`); `deriveShortId` uses last-segment strategy (shared with Codex/Gemini)
 
 ## Reference Project

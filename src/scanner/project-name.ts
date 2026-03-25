@@ -1,3 +1,5 @@
+import { stat } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 
 export async function extractCwdFromClaudeSession(filePath: string): Promise<string | null> {
@@ -67,6 +69,69 @@ export async function extractProjectFromGeminiSession(
   return { projectDir, displayName: dirName };
 }
 
+async function isDir(path: string): Promise<boolean> {
+  try {
+    return (await stat(path)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+export async function resolveSegments(segments: string[], base: string): Promise<string> {
+  if (segments.length === 0) return base;
+
+  let current = base;
+  let i = 0;
+
+  while (i < segments.length) {
+    let found = false;
+
+    for (let len = 1; len <= segments.length - i; len++) {
+      const sliced = segments.slice(i, i + len);
+      const candidate = sliced.join('-');
+
+      if (await isDir(join(current, candidate))) {
+        current = join(current, candidate);
+        i += len;
+        found = true;
+        break;
+      }
+
+      if (len > 1) {
+        const spaceCandidate = sliced.join(' ');
+        if (await isDir(join(current, spaceCandidate))) {
+          current = join(current, spaceCandidate);
+          i += len;
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (!found) {
+      current = join(current, segments.slice(i).join('-'));
+      break;
+    }
+  }
+
+  return current;
+}
+
+const HOMEDIR = homedir();
+const HOMEDIR_SLUG = HOMEDIR.replaceAll('/', '-').replace(/^-/, '');
+
+export async function resolveWorkspaceSlug(slug: string): Promise<string> {
+  const prefix = `${HOMEDIR_SLUG}-`;
+  if (slug === HOMEDIR_SLUG) return HOMEDIR;
+  if (!slug.startsWith(prefix)) return slug;
+
+  const remainder = slug.slice(prefix.length);
+  if (!remainder) return HOMEDIR;
+
+  const segments = remainder.split('-');
+  return resolveSegments(segments, HOMEDIR);
+}
+
 export async function extractProjectFromCursorSession(
   sessionPath: string,
 ): Promise<{ workspaceDir: string; displayName: string } | null> {
@@ -87,6 +152,7 @@ export async function extractProjectFromCursorSession(
     } catch {}
   }
 
-  const dirName = basename(workspaceDir);
-  return { workspaceDir, displayName: dirName };
+  const slug = basename(workspaceDir);
+  const resolved = await resolveWorkspaceSlug(slug);
+  return { workspaceDir, displayName: resolved };
 }
