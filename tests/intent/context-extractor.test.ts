@@ -135,6 +135,14 @@ describe('extractContext — Cursor', () => {
     expect(hasTags).toBe(false);
   });
 
+  test('strips cursor_commands and additional_instructions system tags', async () => {
+    const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
+    const hasSystem = ctx.userMessages.some(
+      (m) => m.includes('cursor_commands') || m.includes('additional_instructions') || m.includes('Cursor Command'),
+    );
+    expect(hasSystem).toBe(false);
+  });
+
   test('extracts assistant messages from Cursor JSONL', async () => {
     const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
     expect(ctx.assistantMessages.length).toBeGreaterThan(0);

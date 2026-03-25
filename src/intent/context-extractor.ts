@@ -117,8 +117,11 @@ function parseCodexLine(data: Record<string, unknown>): ParsedChunk {
   return chunk;
 }
 
-function stripAttachedFilesTags(text: string): string {
-  return text.replace(/<attached_files>[\s\S]*?<\/attached_files>/g, '').trim();
+const CURSOR_SYSTEM_TAG_RE =
+  /<(?:attached_files|cursor_commands|additional_instructions|template_response|example_response)>[\s\S]*?<\/(?:attached_files|cursor_commands|additional_instructions|template_response|example_response)>/g;
+
+function stripCursorSystemTags(text: string): string {
+  return text.replace(CURSOR_SYSTEM_TAG_RE, '').trim();
 }
 
 function stripUserQueryTags(text: string): string {
@@ -135,7 +138,7 @@ function parseCursorLine(data: Record<string, unknown>): ParsedChunk {
 
   if (role === 'user') {
     let text = extractTextContent(content);
-    text = stripAttachedFilesTags(text);
+    text = stripCursorSystemTags(text);
     text = stripUserQueryTags(text);
     if (text.trim()) chunk.userMsg = truncate(text.trim(), MAX_MSG_LENGTH);
   }
