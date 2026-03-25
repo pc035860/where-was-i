@@ -60,4 +60,10 @@ describe('deriveShortId', () => {
     expect(result).toBe('e1f2a3b');
     expect(result).toHaveLength(SESSION_ID_LENGTH);
   });
+
+  test('cursor fallback: no dashes uses first SESSION_ID_LENGTH chars', () => {
+    const result = deriveShortId('cursor', 'abcdef1234567890');
+    expect(result).toBe('abcdef1');
+    expect(result).toHaveLength(SESSION_ID_LENGTH);
+  });
 });

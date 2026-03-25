@@ -135,18 +135,25 @@ describe('extractContext — Cursor', () => {
     expect(hasTags).toBe(false);
   });
 
-  test('strips cursor_commands and additional_instructions system tags', async () => {
+  test('strips all Cursor system tags from user messages', async () => {
     const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
     const hasSystem = ctx.userMessages.some(
-      (m) => m.includes('cursor_commands') || m.includes('additional_instructions') || m.includes('Cursor Command'),
+      (m) =>
+        m.includes('cursor_commands') ||
+        m.includes('additional_instructions') ||
+        m.includes('template_response') ||
+        m.includes('Cursor Command') ||
+        m.includes('Some template'),
     );
     expect(hasSystem).toBe(false);
   });
 
   test('extracts assistant messages from Cursor JSONL', async () => {
     const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
-    expect(ctx.assistantMessages.length).toBeGreaterThan(0);
-    expect(ctx.assistantMessages.some((m) => m.includes('authentication bug'))).toBe(true);
+    expect(ctx.assistantMessages).toEqual([
+      "I'll fix the authentication bug in src/auth.ts.",
+      'Updated the test file with new assertions.',
+    ]);
   });
 
   test('recentTools is empty for Cursor sessions', async () => {
