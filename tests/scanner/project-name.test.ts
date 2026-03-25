@@ -93,4 +93,16 @@ describe('resolveWorkspaceSlug', () => {
     const result = await resolveWorkspaceSlug(homeSlug);
     expect(result).toBe(home);
   });
+
+  test('resolves real path for Claude encodedPath format (leading dash stripped)', async () => {
+    const { homedir, platform } = await import('node:os');
+    if (platform() !== 'darwin') return;
+
+    const home = homedir();
+    const homeSlug = home.replaceAll('/', '-').replace(/^-/, '');
+    const slug = `${homeSlug}-code-wwi`;
+
+    const result = await resolveWorkspaceSlug(slug);
+    expect(result).toBe(`${home}/code/wwi`);
+  });
 });

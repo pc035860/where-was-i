@@ -8,6 +8,7 @@ import {
   extractCwdFromCodexSession,
   extractProjectFromCursorSession,
   extractProjectFromGeminiSession,
+  resolveWorkspaceSlug,
 } from './project-name.ts';
 import type { AgentSession, AgentType } from './types.ts';
 import { computeActivityLevel, SESSION_ID_LENGTH } from './types.ts';
@@ -81,8 +82,8 @@ async function scanClaudeSessions(): Promise<RawSession[]> {
         extractCwdFromClaudeSession(file),
         extractClaudeTimestamp(file),
       ]);
-      const projectName = cwd ? basename(cwd) : encodedPath;
-      const projectPath = cwd || encodedPath;
+      const projectPath = cwd || (await resolveWorkspaceSlug(encodedPath.replace(/^-/, '')));
+      const projectName = basename(projectPath);
 
       sessions.push({
         path: file,
