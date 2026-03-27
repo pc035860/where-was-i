@@ -117,6 +117,40 @@ function parseCodexLine(data: Record<string, unknown>): ParsedChunk {
   return chunk;
 }
 
+const CURSOR_SYSTEM_TAG_RE =
+  /<(?:attached_files|cursor_commands|additional_instructions|template_response|example_response)>[\s\S]*?<\/(?:attached_files|cursor_commands|additional_instructions|template_response|example_response)>/g;
+
+function stripCursorSystemTags(text: string): string {
+  return text.replace(CURSOR_SYSTEM_TAG_RE, '').trim();
+}
+
+function stripUserQueryTags(text: string): string {
+  return text
+    .replace(/^<user_query>\s*/s, '')
+    .replace(/\s*<\/user_query>\s*$/s, '')
+    .trim();
+}
+
+function parseCursorLine(data: Record<string, unknown>): ParsedChunk {
+  const chunk: ParsedChunk = {};
+  const role = data.role as string | undefined;
+  const content = (data.message as { content?: unknown } | undefined)?.content;
+
+  if (role === 'user') {
+    let text = extractTextContent(content);
+    text = stripCursorSystemTags(text);
+    text = stripUserQueryTags(text);
+    if (text.trim()) chunk.userMsg = truncate(text.trim(), MAX_MSG_LENGTH);
+  }
+
+  if (role === 'assistant') {
+    const text = extractTextContent(content);
+    if (text.trim()) chunk.assistantMsg = truncate(text.trim(), MAX_ASST_LENGTH);
+  }
+
+  return chunk;
+}
+
 async function extractGeminiContext(session: AgentSession): Promise<ConversationContext> {
   const userMessages: string[] = [];
   const assistantMessages: string[] = [];
@@ -157,5 +191,7 @@ export async function extractContext(session: AgentSession): Promise<Conversatio
       return buildJsonlContext(session, parseCodexLine);
     case 'gemini':
       return extractGeminiContext(session);
+    case 'cursor':
+      return buildJsonlContext(session, parseCursorLine);
   }
 }

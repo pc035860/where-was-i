@@ -1,0 +1,4 @@
+{"role":"user","message":{"content":[{"type":"text","text":"<attached_files>\n<code_selection path=\"src/auth.ts\" lines=\"1-10\">\nconst secret = 'abc';\n</code_selection>\n</attached_files>\n<user_query>\nfix the authentication bug\n</user_query>"}]}}
+{"role":"assistant","message":{"content":[{"type":"text","text":"I'll fix the authentication bug in src/auth.ts."}]}}
+{"role":"user","message":{"content":[{"type":"text","text":"<cursor_commands>\n--- Cursor Command: commit ---\nExecute git commit\n</cursor_commands>\n<additional_instructions>\nAlways use conventional commits\n</additional_instructions>\n<template_response>\nSome template\n</template_response>\n<user_query>\nalso update the tests\n</user_query>"}]}}
+{"role":"assistant","message":{"content":[{"type":"text","text":"Updated the test file with new assertions."}]}}

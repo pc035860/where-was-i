@@ -3,11 +3,11 @@ import { unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { extractContext } from '../../src/intent/context-extractor.ts';
-import type { AgentSession } from '../../src/scanner/types.ts';
+import type { AgentSession, AgentType } from '../../src/scanner/types.ts';
 
 const FIXTURES = join(import.meta.dir, 'fixtures');
 
-function makeSession(agentType: 'claude' | 'codex' | 'gemini', sessionPath: string): AgentSession {
+function makeSession(agentType: AgentType, sessionPath: string): AgentSession {
   return {
     agentType,
     sessionPath,
@@ -20,7 +20,7 @@ function makeSession(agentType: 'claude' | 'codex' | 'gemini', sessionPath: stri
   };
 }
 
-function fixtureSession(agentType: 'claude' | 'codex' | 'gemini', filename: string): AgentSession {
+function fixtureSession(agentType: AgentType, filename: string): AgentSession {
   return makeSession(agentType, join(FIXTURES, filename));
 }
 
@@ -113,6 +113,57 @@ describe('extractContext — Gemini', () => {
     const ctx = await extractContext(fixtureSession('gemini', 'gemini-session.json'));
     expect(ctx.recentTools).toContain('writeFile');
     expect(ctx.recentTools).toContain('readFile');
+  });
+});
+
+describe('extractContext — Cursor', () => {
+  test('extracts user messages and strips user_query + attached_files tags', async () => {
+    const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
+    expect(ctx.userMessages).toContain('fix the authentication bug');
+    expect(ctx.userMessages).toContain('also update the tests');
+  });
+
+  test('does not include attached_files content in user messages', async () => {
+    const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
+    const hasAttached = ctx.userMessages.some((m) => m.includes('code_selection') || m.includes('<attached_files>'));
+    expect(hasAttached).toBe(false);
+  });
+
+  test('does not include user_query tags in user messages', async () => {
+    const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
+    const hasTags = ctx.userMessages.some((m) => m.includes('<user_query>') || m.includes('</user_query>'));
+    expect(hasTags).toBe(false);
+  });
+
+  test('strips all Cursor system tags from user messages', async () => {
+    const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
+    const hasSystem = ctx.userMessages.some(
+      (m) =>
+        m.includes('cursor_commands') ||
+        m.includes('additional_instructions') ||
+        m.includes('template_response') ||
+        m.includes('Cursor Command') ||
+        m.includes('Some template'),
+    );
+    expect(hasSystem).toBe(false);
+  });
+
+  test('extracts assistant messages from Cursor JSONL', async () => {
+    const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
+    expect(ctx.assistantMessages).toEqual([
+      "I'll fix the authentication bug in src/auth.ts.",
+      'Updated the test file with new assertions.',
+    ]);
+  });
+
+  test('recentTools is empty for Cursor sessions', async () => {
+    const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
+    expect(ctx.recentTools).toEqual([]);
+  });
+
+  test('sets projectName from session', async () => {
+    const ctx = await extractContext(fixtureSession('cursor', 'cursor-session.jsonl'));
+    expect(ctx.projectName).toBe('test-project');
   });
 });
 

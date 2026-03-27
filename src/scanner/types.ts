@@ -1,4 +1,4 @@
-export type AgentType = 'claude' | 'codex' | 'gemini';
+export type AgentType = 'claude' | 'codex' | 'gemini' | 'cursor';
 
 export type ActivityLevel = 'active' | 'recent' | 'stale';
 
@@ -37,4 +37,5 @@ export const AGENT_DISPLAY_NAMES: Record<AgentType, string> = {
   claude: 'claude',
   codex: 'codex',
   gemini: 'gemini',
+  cursor: 'cursor',
 };
