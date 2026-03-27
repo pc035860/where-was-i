@@ -2,7 +2,7 @@ import type { AgentSession, ConversationContext } from '../scanner/types.ts';
 import type { LlmAdapter, ProviderName } from './adapter.ts';
 import { createAdapter } from './adapter.ts';
 import { extractContext } from './context-extractor.ts';
-import { buildIntentPrompt } from './prompt-template.ts';
+import { buildIntentPrompt, type IntentLang } from './prompt-template.ts';
 
 const DEBOUNCE_MS = 3000;
 const RATE_LIMIT_WINDOW_MS = 60000;
@@ -16,6 +16,7 @@ const DEBUG_PROMPT_DIR = '/tmp/wwi-debug-prompts';
 interface CacheEntry {
   intent: string;
   hash: string;
+  lang: IntentLang;
 }
 
 function hashContext(ctx: ConversationContext): string {
@@ -25,8 +26,17 @@ function hashContext(ctx: ConversationContext): string {
 
 async function loadDiskCache(): Promise<Map<string, CacheEntry>> {
   try {
-    const data = await Bun.file(CACHE_PATH).json();
-    return new Map(Object.entries(data));
+    const data = (await Bun.file(CACHE_PATH).json()) as Record<
+      string,
+      { intent: string; hash: string; lang?: IntentLang }
+    >;
+    const map = new Map<string, CacheEntry>();
+    for (const [k, v] of Object.entries(data)) {
+      if (v && typeof v.intent === 'string' && typeof v.hash === 'string') {
+        map.set(k, { intent: v.intent, hash: v.hash, lang: v.lang ?? 'zh' });
+      }
+    }
+    return map;
   } catch {
     return new Map();
   }
@@ -43,6 +53,7 @@ async function saveDiskCache(cache: Map<string, CacheEntry>): Promise<void> {
 export class IntentEngine {
   private adapter: LlmAdapter | null = null;
   private debug: boolean;
+  private intentLang: IntentLang;
   private cache = new Map<string, CacheEntry>();
   private rateLimits = new Map<string, number[]>();
   private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -51,8 +62,15 @@ export class IntentEngine {
   private cacheDirty = false;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(options?: { adapter?: LlmAdapter | null; provider?: ProviderName; model?: string; debug?: boolean }) {
+  constructor(options?: {
+    adapter?: LlmAdapter | null;
+    provider?: ProviderName;
+    model?: string;
+    debug?: boolean;
+    intentLang?: IntentLang;
+  }) {
     this.debug = options?.debug ?? false;
+    this.intentLang = options?.intentLang ?? 'en';
     this.adapter =
       options?.adapter !== undefined ? options.adapter : createAdapter(options?.provider, options?.model, this.debug);
   }
@@ -86,7 +104,9 @@ export class IntentEngine {
   }
 
   getIntent(sessionPath: string): string | undefined {
-    return this.cache.get(sessionPath)?.intent;
+    const e = this.cache.get(sessionPath);
+    if (!e || e.lang !== this.intentLang) return undefined;
+    return e.intent;
   }
 
   requestIntent(session: AgentSession, onUpdate?: () => void): void {
@@ -114,27 +134,29 @@ export class IntentEngine {
     const hash = hashContext(ctx);
 
     const cached = this.cache.get(session.sessionPath);
-    if (cached && cached.hash === hash) return cached.intent;
+    if (cached && cached.hash === hash && cached.lang === this.intentLang) return cached.intent;
 
     if (!this.adapter) {
       return ctx.userMessages.at(-1) ?? undefined;
     }
 
+    const langMatch = cached?.lang === this.intentLang;
+
     if (!this.checkRateLimit(session.sessionPath)) {
-      return cached?.intent ?? ctx.userMessages.at(-1) ?? undefined;
+      return (langMatch ? cached?.intent : undefined) ?? ctx.userMessages.at(-1) ?? undefined;
     }
 
-    const prompt = buildIntentPrompt(ctx);
+    const prompt = buildIntentPrompt(ctx, this.intentLang);
     const result = await this.callWithRetry(prompt, ctx.projectName);
 
     if (result) {
       const cleaned = result.replace(/\n/g, ' ').trim();
-      this.cache.set(session.sessionPath, { intent: cleaned, hash });
+      this.cache.set(session.sessionPath, { intent: cleaned, hash, lang: this.intentLang });
       this.scheduleCacheFlush();
       return cleaned;
     }
 
-    return cached?.intent ?? ctx.userMessages.at(-1) ?? undefined;
+    return (langMatch ? cached?.intent : undefined) ?? ctx.userMessages.at(-1) ?? undefined;
   }
 
   private async dumpPrompt(prompt: string, projectName: string): Promise<void> {

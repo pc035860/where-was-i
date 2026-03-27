@@ -75,6 +75,44 @@ describe('IntentEngine', () => {
     expect(intent).toBe('正在修復登入錯誤');
   });
 
+  test('requestIntentSync misses cache when intentLang differs', async () => {
+    let callCount = 0;
+    const adapter: LlmAdapter = {
+      generateIntent: async () => {
+        callCount++;
+        return 'response';
+      },
+    };
+    engine = new IntentEngine({ adapter, intentLang: 'zh' });
+    const session = makeSession('langmiss');
+    await engine.requestIntentSync(session);
+    await engine.destroy();
+
+    engine = new IntentEngine({ adapter, intentLang: 'en' });
+    await engine.requestIntentSync(session);
+    expect(callCount).toBe(2);
+  });
+
+  test('fallback does not return cross-language cached intent', async () => {
+    let callCount = 0;
+    const adapter: LlmAdapter = {
+      generateIntent: async () => {
+        callCount++;
+        if (callCount === 1) return '中文意圖';
+        return undefined;
+      },
+    };
+    engine = new IntentEngine({ adapter, intentLang: 'zh' });
+    const session = makeSession('langfallback');
+    const first = await engine.requestIntentSync(session);
+    expect(first).toBe('中文意圖');
+    await engine.destroy();
+
+    engine = new IntentEngine({ adapter, intentLang: 'en' });
+    const second = await engine.requestIntentSync(session);
+    expect(second).not.toBe('中文意圖');
+  });
+
   test('requestIntentSync caches results', async () => {
     let callCount = 0;
     const adapter: LlmAdapter = {

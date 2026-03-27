@@ -1,5 +1,6 @@
 import type { ProviderName } from '../intent/adapter.ts';
 import { IntentEngine } from '../intent/intent-engine.ts';
+import type { IntentLang } from '../intent/prompt-template.ts';
 import { scanAllSessions } from '../scanner/session-scanner.ts';
 import type { AgentSession } from '../scanner/types.ts';
 import { copyToClipboard } from '../utils/clipboard.ts';
@@ -12,13 +13,19 @@ export interface CommandOptions {
   debug: boolean;
   provider: ProviderName;
   model?: string;
+  intentLang: IntentLang;
 }
 
 export async function statusCommand(options: CommandOptions): Promise<void> {
   const sessions = await scanAllSessions();
 
   if (options.intent) {
-    const engine = new IntentEngine({ provider: options.provider, model: options.model, debug: options.debug });
+    const engine = new IntentEngine({
+      provider: options.provider,
+      model: options.model,
+      debug: options.debug,
+      intentLang: options.intentLang,
+    });
     const visible = sessions.filter((s) => s.activityLevel !== 'stale');
     await Promise.allSettled(
       visible.map(async (session) => {
@@ -41,7 +48,12 @@ export async function watchCommand(options: CommandOptions): Promise<void> {
   const POLL_INTERVAL_MS = 2000;
 
   const engine = options.intent
-    ? new IntentEngine({ provider: options.provider, model: options.model, debug: options.debug })
+    ? new IntentEngine({
+        provider: options.provider,
+        model: options.model,
+        debug: options.debug,
+        intentLang: options.intentLang,
+      })
     : null;
   if (engine) await engine.init();
   let lastMtimes = new Map<string, number>();

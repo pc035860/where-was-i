@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import type { CommandOptions } from './tui/watch-loop.ts';
 
 const program = new Command();
@@ -13,6 +13,11 @@ program
   .option('--debug', 'Show debug output', false)
   .option('-p, --provider <name>', 'LLM provider for intent synthesis (gemini or openai)', 'gemini')
   .option('-m, --model <name>', 'Model name to use for intent synthesis')
+  .addOption(
+    new Option('--intent-lang <code>', 'Intent synthesis output language (en or zh Traditional Chinese)')
+      .choices(['en', 'zh'])
+      .default('en'),
+  )
   .action(async (options: CommandOptions) => {
     const { statusCommand } = await import('./tui/watch-loop.ts');
     await statusCommand(options);
@@ -26,6 +31,11 @@ program
   .option('--debug', 'Show debug output', false)
   .option('-p, --provider <name>', 'LLM provider for intent synthesis (gemini or openai)', 'gemini')
   .option('-m, --model <name>', 'Model name to use for intent synthesis')
+  .addOption(
+    new Option('--intent-lang <code>', 'Intent synthesis output language (en or zh Traditional Chinese)')
+      .choices(['en', 'zh'])
+      .default('en'),
+  )
   .action(async (options: CommandOptions) => {
     const { watchCommand } = await import('./tui/watch-loop.ts');
     await watchCommand(options);

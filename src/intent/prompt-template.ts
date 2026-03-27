@@ -1,5 +1,7 @@
 import type { ConversationContext } from '../scanner/types.ts';
 
+export type IntentLang = 'en' | 'zh';
+
 function escapeXml(str: string): string {
   return str.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -9,7 +11,26 @@ function wrapMessages(messages: string[]): string {
   return messages.map((m) => `<msg>${escapeXml(m)}</msg>`).join('\n');
 }
 
-export function buildIntentPrompt(context: ConversationContext): string {
+function buildInstructions(lang: IntentLang): string {
+  if (lang === 'zh') {
+    return `<instructions>
+Output TWO sentences in Traditional Chinese (繁體中文), max 60 characters total.
+1. User intent — what the user wants to achieve (NOT the project name)
+2. Current action — what is happening right now
+
+Do NOT restate the project name. Be specific and concrete.
+</instructions>`;
+  }
+  return `<instructions>
+Output TWO sentences in English, max 150 characters total.
+1. User intent — what the user wants to achieve (NOT the project name)
+2. Current action — what is happening right now
+
+Do NOT restate the project name. Be specific and concrete.
+</instructions>`;
+}
+
+export function buildIntentPrompt(context: ConversationContext, lang: IntentLang): string {
   const toolSection = context.recentTools.length > 0 ? escapeXml(context.recentTools.join(', ')) : '(none)';
 
   return `<system>You synthesize coding session activity into a brief status line.</system>
@@ -28,11 +49,5 @@ ${wrapMessages(context.assistantMessages)}
 <tools>${toolSection}</tools>
 </context>
 
-<instructions>
-Output TWO sentences in Traditional Chinese (繁體中文), max 60 characters total.
-1. User intent — what the user wants to achieve (NOT the project name)
-2. Current action — what is happening right now
-
-Do NOT restate the project name. Be specific and concrete.
-</instructions>`;
+${buildInstructions(lang)}`;
 }

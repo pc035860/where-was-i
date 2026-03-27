@@ -12,6 +12,7 @@ bun run src/main.ts status -p openai   # Use OpenAI provider
 bun run src/main.ts watch -m gemini-2.5-flash  # Override model name
 bun run src/main.ts status --show-stale # Include stale sessions (>2h)
 bun run src/main.ts status --no-intent # Skip intent synthesis
+bun run src/main.ts status --intent-lang zh  # Intent in Traditional Chinese
 bun run src/main.ts status --debug     # Show debug output (API timing, adapter selection)
 bun run src/main.ts watch              # Persistent TUI (main use case)
 bun run typecheck                      # TypeScript check (skipLibCheck due to @google/genai gaxios issue)
@@ -76,7 +77,7 @@ tests/
 - Claude session scanner must check `~/.claude/projects` exists before globbing (not all machines have it)
 - `Bun.stripANSI` is capitalized as `Bun.stripANSI()` (not `stripAnsi`)
 - Provider selected via `-p, --provider <name>` CLI option (gemini/openai, default: gemini). Missing API key for the selected provider throws an error
-- `IntentEngine` constructor takes options object: `new IntentEngine({ adapter?, provider?, model?, debug? })`
+- `IntentEngine` constructor takes options object: `new IntentEngine({ adapter?, provider?, model?, debug?, intentLang? })`
 - `IntentEngine.destroy()` is async — must be awaited before `process.exit()` to flush disk cache
 - Intent cache persists to `/tmp/wwi-intent-cache.json` with debounced writes (5s coalesce)
 - Codex `session_meta` first line can be 15KB+ (contains full system prompt) — `Bun.file().slice()` buffer must be ≥32KB to parse it
@@ -85,6 +86,7 @@ tests/
 - Renderer uses `Math.max(0, ...)` guards on all `String.repeat()` calls — narrow terminals would otherwise throw `RangeError`
 - `statusMessage` in renderer is truncated via `truncateToWidth()` — full session IDs can exceed `innerWidth` on narrow terminals
 - `wrapToLines()` has `available <= 0` guard — prevents infinite loop when called with zero/negative maxWidth
+- **Intent cache stores `lang` per entry** — cache hits require both hash match AND `lang === this.intentLang`. Fallback paths (rate-limit, adapter failure) also check lang to prevent cross-language cache leaks
 - Intent engine disk cache (`/tmp/wwi-intent-cache.json`) is shared across test runs — tests must delete it in `beforeEach`/`afterEach` for isolation
 - Filesystem mtime is unreliable for session activity — backup/sync tools (iCloud, rsync) batch-touch files, making stale sessions appear recent. Always use content timestamps from `content-timestamp.ts`
 - `renderStatus()` returns `RenderResult` (not string) — callers must destructure `{ output }` or `{ output, displayed }`

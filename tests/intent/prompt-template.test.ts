@@ -2,15 +2,16 @@ import { describe, expect, test } from 'bun:test';
 import { buildIntentPrompt } from '../../src/intent/prompt-template.ts';
 import type { ConversationContext } from '../../src/scanner/types.ts';
 
+const baseCtx: ConversationContext = {
+  userMessages: ['fix the bug'],
+  assistantMessages: ['Looking into it.'],
+  recentTools: ['Read'],
+  projectName: 'my-project',
+};
+
 describe('buildIntentPrompt', () => {
   test('includes project name in output', () => {
-    const ctx: ConversationContext = {
-      userMessages: ['fix the bug'],
-      assistantMessages: ['Looking into it.'],
-      recentTools: ['Read'],
-      projectName: 'my-project',
-    };
-    const prompt = buildIntentPrompt(ctx);
+    const prompt = buildIntentPrompt(baseCtx, 'en');
     expect(prompt).toContain('<project>my-project</project>');
   });
 
@@ -21,7 +22,7 @@ describe('buildIntentPrompt', () => {
       recentTools: [],
       projectName: 'test',
     };
-    const prompt = buildIntentPrompt(ctx);
+    const prompt = buildIntentPrompt(ctx, 'en');
     expect(prompt).toContain('<msg>hello</msg>');
     expect(prompt).toContain('<msg>world</msg>');
   });
@@ -33,7 +34,7 @@ describe('buildIntentPrompt', () => {
       recentTools: [],
       projectName: 'test',
     };
-    const prompt = buildIntentPrompt(ctx);
+    const prompt = buildIntentPrompt(ctx, 'en');
     expect(prompt).toContain('<msg>(none)</msg>');
   });
 
@@ -44,7 +45,7 @@ describe('buildIntentPrompt', () => {
       recentTools: ['Read', 'Edit', 'Bash'],
       projectName: 'test',
     };
-    const prompt = buildIntentPrompt(ctx);
+    const prompt = buildIntentPrompt(ctx, 'en');
     expect(prompt).toContain('<tools>Read, Edit, Bash</tools>');
   });
 
@@ -55,20 +56,33 @@ describe('buildIntentPrompt', () => {
       recentTools: [],
       projectName: 'test',
     };
-    const prompt = buildIntentPrompt(ctx);
+    const prompt = buildIntentPrompt(ctx, 'en');
     expect(prompt).toContain('<tools>(none)</tools>');
   });
 
-  test('contains instruction for Traditional Chinese output', () => {
+  test('zh lang contains Traditional Chinese instruction', () => {
     const ctx: ConversationContext = {
       userMessages: ['test'],
       assistantMessages: [],
       recentTools: [],
       projectName: 'test',
     };
-    const prompt = buildIntentPrompt(ctx);
+    const prompt = buildIntentPrompt(ctx, 'zh');
     expect(prompt).toContain('繁體中文');
     expect(prompt).toContain('TWO sentences');
+    expect(prompt).toContain('60 characters');
+  });
+
+  test('en lang contains English instruction', () => {
+    const ctx: ConversationContext = {
+      userMessages: ['test'],
+      assistantMessages: [],
+      recentTools: [],
+      projectName: 'test',
+    };
+    const prompt = buildIntentPrompt(ctx, 'en');
+    expect(prompt).toContain('Output TWO sentences in English');
+    expect(prompt).toContain('150 characters');
   });
 
   test('escapes XML-like content in messages', () => {
@@ -78,7 +92,7 @@ describe('buildIntentPrompt', () => {
       recentTools: [],
       projectName: '<script>alert</script>',
     };
-    const prompt = buildIntentPrompt(ctx);
+    const prompt = buildIntentPrompt(ctx, 'en');
     expect(prompt).not.toContain('</msg> injection');
     expect(prompt).toContain('&lt;/msg&gt; injection');
     expect(prompt).toContain('&lt;script&gt;alert&lt;/script&gt;');
