@@ -8,11 +8,12 @@ A CLI tool that scans AI coding agent sessions and displays their status with LL
 
 ## What It Does
 
-WWI scans session files from three AI coding agents:
+WWI scans session files from four AI coding agents:
 
 - **Claude Code** — reads from `~/.claude/projects/`
 - **Codex** — reads from `~/.codex/sessions/`
 - **Gemini CLI** — reads from `~/.gemini/tmp/`
+- **Cursor** — reads from `~/.cursor/projects/`
 
 For each active session, it shows:
 - Which agent is running and which project it belongs to
@@ -70,6 +71,7 @@ A persistent TUI that refreshes every 2 seconds. Keyboard shortcuts:
 | `q` / `Ctrl-C` | Quit |
 | `s` | Toggle stale sessions |
 | `a` | Toggle expand all (override adaptive height) |
+| `1`–`9` | Copy full session ID to clipboard |
 
 ### CLI Options
 
@@ -80,6 +82,7 @@ A persistent TUI that refreshes every 2 seconds. Keyboard shortcuts:
 | `--debug` | Show debug output (API timing, adapter info) | `false` |
 | `-p, --provider <name>` | LLM provider: `gemini` or `openai` | `gemini` |
 | `-m, --model <name>` | Override the model name | Gemini: `gemini-3.1-flash-lite-preview`, OpenAI: `gpt-4.1-mini` |
+| `--intent-lang <code>` | Intent output language: `en` or `zh` (Traditional Chinese) | `en` |
 
 ### Examples
 
@@ -95,6 +98,9 @@ bun run src/main.ts status --no-intent
 
 # Show everything including stale sessions
 bun run src/main.ts status --show-stale
+
+# Intent summaries in Traditional Chinese
+bun run src/main.ts watch --intent-lang zh
 ```
 
 ## Project Structure
@@ -103,8 +109,9 @@ bun run src/main.ts status --show-stale
 src/
 ├── main.ts              # CLI entry point (commander)
 ├── scanner/             # Session discovery
-│   ├── session-scanner.ts  # Scans Claude/Codex/Gemini session files
+│   ├── session-scanner.ts  # Scans Claude/Codex/Gemini/Cursor session files
 │   ├── project-name.ts     # Extracts project name from session data
+│   ├── content-timestamp.ts # Extracts activity time from session content
 │   └── types.ts            # AgentSession type, activity thresholds
 ├── intent/              # LLM-powered intent synthesis
 │   ├── intent-engine.ts    # Debounced requests, caching, rate limiting
@@ -115,10 +122,12 @@ src/
 │   └── prompt-template.ts  # Builds the LLM prompt with XML escaping
 ├── tui/                 # Terminal UI
 │   ├── renderer.ts         # Box-drawing layout, CJK-aware formatting
+│   ├── resume-command.ts   # Builds resume command from session data
 │   └── watch-loop.ts       # Watch loop + one-shot status command
 └── utils/               # Shared utilities
     ├── time.ts             # Relative time formatting
-    └── string-width.ts     # CJK-aware string width + wrapping
+    ├── string-width.ts     # CJK-aware string width + wrapping
+    └── clipboard.ts        # macOS clipboard (pbcopy)
 
 tests/                   # Bun test runner, mirrors src/ structure
 ```
@@ -136,7 +145,7 @@ bun run lint:fix  # Auto-fix lint issues
 
 1. **Scan** — The scanner globs session files from each agent's known directory, filters out sessions older than 24 hours, and extracts project names from the session data.
 
-2. **Extract Context** — For each active session, the context extractor reads the tail of the session file (JSONL for Claude/Codex, full JSON for Gemini) and pulls out recent user messages, assistant messages, and tool calls.
+2. **Extract Context** — For each active session, the context extractor reads the tail of the session file (JSONL for Claude/Codex/Cursor, full JSON for Gemini) and pulls out recent user messages, assistant messages, and tool calls.
 
 3. **Synthesize Intent** — The extracted context is fed into an LLM prompt that asks for a one-line summary of what the agent is currently working on. Results are cached to disk (`/tmp/wwi-intent-cache.json`) and debounced to avoid excessive API calls.
 

@@ -8,11 +8,12 @@
 
 ## 功能簡介
 
-WWI 會掃描三種 AI 程式碼代理的工作階段檔案：
+WWI 會掃描四種 AI 程式碼代理的工作階段檔案：
 
 - **Claude Code** — 讀取 `~/.claude/projects/`
 - **Codex** — 讀取 `~/.codex/sessions/`
 - **Gemini CLI** — 讀取 `~/.gemini/tmp/`
+- **Cursor** — 讀取 `~/.cursor/projects/`
 
 針對每個活躍的工作階段，WWI 會顯示：
 - 哪個代理正在執行、屬於哪個專案
@@ -70,6 +71,7 @@ bun run src/main.ts watch
 | `q` / `Ctrl-C` | 離開 |
 | `s` | 切換顯示閒置工作階段 |
 | `a` | 切換全部展開（覆蓋自適應高度） |
+| `1`–`9` | 複製完整工作階段 ID 到剪貼簿 |
 
 ### CLI 選項
 
@@ -80,6 +82,7 @@ bun run src/main.ts watch
 | `--debug` | 顯示除錯資訊（API 計時、adapter 選擇） | `false` |
 | `-p, --provider <name>` | LLM 提供者：`gemini` 或 `openai` | `gemini` |
 | `-m, --model <name>` | 覆寫模型名稱 | Gemini: `gemini-3.1-flash-lite-preview`、OpenAI: `gpt-4.1-mini` |
+| `--intent-lang <code>` | 意圖摘要輸出語言：`en` 或 `zh`（繁體中文） | `en` |
 
 ### 範例
 
@@ -95,6 +98,9 @@ bun run src/main.ts status --no-intent
 
 # 顯示所有工作階段，包含閒置的
 bun run src/main.ts status --show-stale
+
+# 意圖摘要使用繁體中文
+bun run src/main.ts watch --intent-lang zh
 ```
 
 ## 專案結構
@@ -103,8 +109,9 @@ bun run src/main.ts status --show-stale
 src/
 ├── main.ts              # CLI 進入點（commander）
 ├── scanner/             # 工作階段掃描
-│   ├── session-scanner.ts  # 掃描 Claude/Codex/Gemini 的工作階段檔案
+│   ├── session-scanner.ts  # 掃描 Claude/Codex/Gemini/Cursor 的工作階段檔案
 │   ├── project-name.ts     # 從工作階段資料中萃取專案名稱
+│   ├── content-timestamp.ts # 從工作階段內容萃取活躍時間
 │   └── types.ts            # AgentSession 型別、活躍度門檻
 ├── intent/              # LLM 意圖合成
 │   ├── intent-engine.ts    # 防抖請求、快取、速率限制
@@ -115,10 +122,12 @@ src/
 │   └── prompt-template.ts  # 建構 LLM prompt，含 XML 跳脫處理
 ├── tui/                 # 終端機介面
 │   ├── renderer.ts         # 方框繪製排版、CJK 寬度處理
+│   ├── resume-command.ts   # 從工作階段資料建構恢復指令
 │   └── watch-loop.ts       # Watch 迴圈 + 一次性狀態指令
 └── utils/               # 共用工具
     ├── time.ts             # 相對時間格式化
-    └── string-width.ts     # CJK 字元寬度計算 + 自動換行
+    ├── string-width.ts     # CJK 字元寬度計算 + 自動換行
+    └── clipboard.ts        # macOS 剪貼簿（pbcopy）
 
 tests/                   # Bun 測試（結構對應 src/）
 ```
@@ -136,7 +145,7 @@ bun run lint:fix  # 自動修正檢查問題
 
 1. **掃描** — scanner 透過 glob 搜尋各代理已知目錄中的工作階段檔案，過濾掉超過 24 小時的工作階段，並從工作階段資料中萃取專案名稱。
 
-2. **萃取上下文** — 針對每個活躍的工作階段，context extractor 讀取工作階段檔案的尾端（Claude/Codex 使用 JSONL 格式，Gemini 使用完整 JSON），提取出近期的使用者訊息、助理訊息和工具呼叫。
+2. **萃取上下文** — 針對每個活躍的工作階段，context extractor 讀取工作階段檔案的尾端（Claude/Codex/Cursor 使用 JSONL 格式，Gemini 使用完整 JSON），提取出近期的使用者訊息、助理訊息和工具呼叫。
 
 3. **合成意圖** — 將萃取的上下文送入 LLM prompt，請求產生一行摘要來描述代理目前的工作內容。結果會快取到磁碟（`/tmp/wwi-intent-cache.json`），並使用防抖機制避免過多的 API 呼叫。
 
