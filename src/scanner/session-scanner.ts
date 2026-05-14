@@ -15,6 +15,11 @@ import { computeActivityLevel, SESSION_ID_LENGTH } from './types.ts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl$/i;
 
+// Cursor IDE chat transcripts use a bare UUID filename, while
+// `@cursor/sdk` (Agent.create() + send()) writes `agent-<UUID>.jsonl`.
+// Match either; the `agent-` prefix is the SDK-side agentId.
+const CURSOR_TRANSCRIPT_PATTERN = /^(?:agent-)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl$/i;
+
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export function extractFullSessionId(agentType: AgentType, filePath: string): string {
@@ -194,7 +199,7 @@ async function scanCursorSessions(): Promise<RawSession[]> {
   const glob = new Glob('*/agent-transcripts/*/*.jsonl');
   for await (const file of glob.scan({ cwd: baseDir, absolute: true })) {
     const filename = basename(file);
-    if (!UUID_PATTERN.test(filename)) continue;
+    if (!CURSOR_TRANSCRIPT_PATTERN.test(filename)) continue;
 
     try {
       const stats = await stat(file);
