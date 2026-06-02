@@ -81,7 +81,7 @@ A persistent TUI that refreshes every 2 seconds. Keyboard shortcuts:
 | `--no-intent` | Skip LLM intent synthesis | intent enabled |
 | `--debug` | Show debug output (API timing, adapter info) | `false` |
 | `-p, --provider <name>` | LLM provider: `gemini` or `openai` | `gemini` |
-| `-m, --model <name>` | Override the model name | Gemini: `gemini-3.1-flash-lite-preview`, OpenAI: `gpt-4.1-mini` |
+| `-m, --model <name>` | Override the model name | Gemini: `gemini-2.5-flash-lite`, OpenAI: `gpt-4.1-mini` |
 | `--intent-lang <code>` | Intent output language: `en` or `zh` (Traditional Chinese) | `en` |
 
 ### Examples

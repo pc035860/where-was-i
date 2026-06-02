@@ -81,7 +81,7 @@ bun run src/main.ts watch
 | `--no-intent` | 跳過 LLM 意圖合成 | 啟用意圖 |
 | `--debug` | 顯示除錯資訊（API 計時、adapter 選擇） | `false` |
 | `-p, --provider <name>` | LLM 提供者：`gemini` 或 `openai` | `gemini` |
-| `-m, --model <name>` | 覆寫模型名稱 | Gemini: `gemini-3.1-flash-lite-preview`、OpenAI: `gpt-4.1-mini` |
+| `-m, --model <name>` | 覆寫模型名稱 | Gemini: `gemini-2.5-flash-lite`、OpenAI: `gpt-4.1-mini` |
 | `--intent-lang <code>` | 意圖摘要輸出語言：`en` 或 `zh`（繁體中文） | `en` |
 
 ### 範例

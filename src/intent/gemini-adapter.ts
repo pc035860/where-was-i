@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { LlmAdapter } from './adapter.ts';
 
-const DEFAULT_MODEL = 'gemini-3.1-flash-lite-preview';
+const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
 
 export function createGeminiAdapter(apiKey: string, model?: string): LlmAdapter {
   const ai = new GoogleGenAI({ apiKey });

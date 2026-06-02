@@ -36,7 +36,7 @@ bun run lint:fix                       # Biome auto-fix
 - **Linter**: Biome (2-space indent, single quotes, semicolons, 120 line width)
 - **Git Hooks**: husky + lint-staged — pre-commit runs `biome check --write` on staged `*.{ts,tsx,js,jsx,json}`
 - **Test Runner**: Bun built-in (`bun test`), tests in `tests/` mirroring `src/` structure
-- **Intent Model**: Multi-adapter — Gemini (`gemini-3.1-flash-lite-preview`) or OpenAI (`gpt-4.1-mini`), selected via `--provider` CLI option (default: gemini)
+- **Intent Model**: Multi-adapter — Gemini (`gemini-2.5-flash-lite`) or OpenAI (`gpt-4.1-mini`), selected via `--provider` CLI option (default: gemini)
 
 ## Architecture
 
